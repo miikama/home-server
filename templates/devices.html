@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block content %}
+    
+    <h1>Here are your devices </h1>
+
+    {% for device in devices %}
+		<div class="md-8">	
+			<h2> {{ device.nice_name }} </h2>       
+			<p> located at {{ device.location}} </p>
+		</div>    
+	{% endfor %}
+
+{% endblock %}
