@@ -36,7 +36,11 @@ def read_device_config(file_path):
 	"""
 
 	config = configparser.ConfigParser()
-	config.read(file_path)
+	try:
+		config.read(file_path)
+	except Exception as e:
+		return None
+	
 
 	print(config)
 

@@ -1,0 +1,24 @@
+
+body {
+  background: #fafafa;
+  color: #333333;
+  margin: 0px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #444444;
+}
+
+.navbar {
+	background-color: #336B87;
+}
+
+
+.navbar.navbar-expand-lg a{
+	color: #FFFFFF;
+}
+
+.navbar.navbar-expand-lg li a{
+	color: #e6fafa;
+}
+
