@@ -4,7 +4,6 @@ import configparser
 import importlib
 from datetime import datetime
 
-from homeserver import app
 
 import logging
 
@@ -14,15 +13,15 @@ def load_config(file_path):
 	"""
 	reads the config file and sets the found parameters to the app config
 	"""
-	logging.debug("loading application configuration from {}".format(file_path))
+	print("loading application configuration from path: {}".format(file_path))
 	config = configparser.ConfigParser()
 	try:
 		config.read(file_path)
 	except Exception as e:
 		return None
 
-	for key in config['DEFAULT'].keys():
-		app.config[key.upper()] = config['DEFAULT'][key]
+	return config['DEFAULT']
+
 
 
 

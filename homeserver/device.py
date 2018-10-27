@@ -6,7 +6,7 @@ class Device(object):
 	"""
 	def __init__(self, config):
 
-		logging.debug("initialiasing ", config['DEFAULT']['FULL_NAME'])
+		logging.debug("initialiasing {}".format(config['DEFAULT']['FULL_NAME']) )
 
 		self.nice_name = config['DEFAULT']['NICE_NAME']
 		self.full_name = config['DEFAULT']['FULL_NAME']
@@ -43,7 +43,7 @@ class Device(object):
 			a dummy implementation
 		"""
 
-		print(self.nice_name, " toggled on/off")
+		logging.debug("{} toggled on/off".format(self.nice_name))
 
 
 
