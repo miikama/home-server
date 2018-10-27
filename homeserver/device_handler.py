@@ -2,7 +2,7 @@
 from homeserver.server_config import read_device_config
 
 import os
-
+import logging
 
 
 class DeviceHandler():
@@ -62,7 +62,7 @@ class DeviceHandler():
 				self.devices.append(device)
 
 
-		print("devices: ", self.devices)
+		logging.debug("devices: {}".format(self.devices))
 
 
 	

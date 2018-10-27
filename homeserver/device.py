@@ -1,3 +1,4 @@
+from homeserver import app
 
 
 class Device(object):
@@ -6,7 +7,7 @@ class Device(object):
 	"""
 	def __init__(self, config):
 
-		print("initialiasing ", config['DEFAULT']['FULL_NAME'])
+		app.logger.debug("initialiasing ", config['DEFAULT']['FULL_NAME'])
 
 		self.nice_name = config['DEFAULT']['NICE_NAME']
 		self.full_name = config['DEFAULT']['FULL_NAME']
