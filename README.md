@@ -1,14 +1,126 @@
 # home-server
 
+
+
+## complete setup
+
+
+
+
+```shell
+pip install --upgrade virtualenv
+virtualenv --python python3 henv
+source henv/bin/activate
+```
+
+pyaudio
+
+```shell
+sudo apt-get install portaudio19-dev
+sudo apt-get install  python-all-dev
+pip install pyaudio 
+pip install flask
+pip install google-cloud-storage
+pip install --upgrade google-cloud-speech
+```
+
+
+
+
+
+
+
+
 ## setup
+
+
+
+### parts
 
 the server is using python server library flask, install it with
 
 ```shell
 pip install flask
+
+```
+
+### installing the google cloud api
+
+```shell
+
+pip install --upgrade virtualenv
+
+virtualenv --python python3 env
+
+source env/bin/activate
+
+pip install google-cloud-storage
+pip install --upgrade google-cloud-speech
+
+```
+
+stop using virtualenv
+
+```shell
+deactivate
+
+```
+
+### recording sound with microphone
+
+use pyaudio python library
+
+list devices
+
+```shell
+lsusb -t
+```
+
+should find microphone with type class audio and driver snd-usb-audio
+
+first 
+
+```shell
+sudo apt-get install portaudio19-dev
+sudo apt-get install  python-all-dev
+```
+
+then
+
+```shell
+pip install pyaudio 
+```
+
+or 
+
+```shell
+ sudo apt-get install python-pyaudio python3-pyaudio 
+ ```
+
+pyaudio seems to record the system default audio device
+
+
+### using sphinx
+
+dependencies 
+
+```shell
+sudo apt-get install swig libpulse-dev libasound2-dev	
+pip install --upgrade pocketsphinx
+```
+
+full list
+
+```shell
+sudo apt-get install -qq python python-dev python-pip build-essential swig git libpulse-dev libasound2-dev
 ```
 
 
+### Speechrecognition
+
+```shell
+pip install SpeechRecognition
+```
 
 
 
@@ -42,3 +154,21 @@ pip install flask
 ## Ideas
 
 * user authentication with pressing a button on rasperry
+
+
+
+### snowboy
+
+snowboy offers compiled source for python2. For python3 the source has to be compiled yourself
+
+```shell
+git clone https://github.com/Kitt-AI/snowboy.git
+cd swig/Python3
+make
+```
+
+copy
+- snowboy/swig/Python3/* into <home-server-dir>/snowboy 
+- snowboy/resources/{common.res, ding.vaw, dong.vaw} into <home-server-dir>/snowboy/resources
+- snowboy/examples/Python/{snowboydecoder.py,snowboythreaded.py} into <home-server-dir>/snowboy
+- your model into <home-server-dir>/snowboy/resources
