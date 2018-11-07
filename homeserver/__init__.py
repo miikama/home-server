@@ -32,26 +32,9 @@ device_handler = DeviceHandler( os.path.join( app_path, 'device_configs') )
 #get the webpage rolling
 from homeserver import server  
 
+#start voice control
+from homeserver.voice_control.voice_controller import VoiceController
+voice_controller = VoiceController(start=True)
 
-
-from homeserver.voice_control.google_speech import GoogleVoiceRecognition
-google_recognizer = GoogleVoiceRecognition(app.config['GOOGLE_CREDENTIALS'])
-
-def m_call():
-	print("kuulen!!!!!!!!!!, file: ")
-
-def m_call2(fname):
-	print("kuulen!!!!!!!!!!, file: ", fname)
-
-
-
-#start the keyword detection
-from homeserver.voice_control.detect_voice_key import KeyWordDetector
-key_detector = KeyWordDetector(app.config['SNOWBOY_MODEL'],
-									detected_callback= m_call ,
-									audio_recorder_callback=google_recognizer.interpret_command,
-					              	silent_count_threshold=15,
-					              	recording_timeout=10,
-					              	audio_path=app.config['AUDIO_PATH_AFTER_DETECTION'])
 
 
