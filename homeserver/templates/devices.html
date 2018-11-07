@@ -10,6 +10,25 @@
 	    	document.getElementById(onformid).submit();
 	    }
 
+	    function DeviceOn2(onformid) {
+	    	destElem = document.getElementById(onformid);
+            $(destElem).html('<img src="{{ url_for('static', filename='loading.gif') }}">');
+            $.post('/translate', {
+                text: $(sourceElem).text(),
+                source_language: sourceLang,
+                dest_language: destLang
+            }).done(function(response) {
+            	device_staus = response['status']
+            	if( device_status['is_on'] ){            		
+                	$(destElem).bootstrapToggle('on')
+            	} else{
+            		$(destElem).bootstrapToggle('off')
+            	}
+            }).fail(function() {
+                $(destElem).text("{{ ('Error: Could not contact server.') }}");
+            });
+        }
+
     </script>
     
 
@@ -29,7 +48,8 @@
 					<form method="POST" action="{{ url_for('device_action', deviceId=device.id, action='toggleOn') }}" class="col-sm-2" id="device_{{device.id}}_on_form">			
 						<div class="form-check">				
 							<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
-								data-onstyle="success" data-offstyle="info"	onchange="DeviceOn('device_{{device.id}}_on_form')" {% if device.is_on %} checked  {% endif %} 
+								data-onstyle="success" data-offstyle="info"	onchange="DeviceOn('device_{{device.id}}_on_form')" 
+								{% if device.is_on %} checked  {% endif %} 
 								{% if not device.enabled %} disabled {% endif %}>
 						</div>				                
 					</form>
