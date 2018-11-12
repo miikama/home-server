@@ -1,5 +1,6 @@
 
-from homeserver.server_config import read_device_config
+#from homeserver.server_config import read_device_config
+from homeserver.device import DeviceInterface
 
 import os
 import logging
@@ -10,23 +11,37 @@ class DeviceHandler():
 	Class for interacting with devices
 	'''
 
-	# list of all the device objects
-	devices = [];
-
-
 
 	def __init__(self, folder):
 		"""is given the folder of the device_configs as parameter"""
 		
+		# list of all the device objects
+		self._interfaces = [];
 
 		self.device_folder = folder
 
 		self.read_devices()
 
+		self.active_device = None
+
+	@property
+	def devices(self):
+		""" Some devices have interfaces (such as philips lamps),
+			which control multiple different devices. Interface is used 
+			to get devices of the same type. This property is used
+			 to hide this and return individual device objects
+		"""
+		devices = []
+
+		for interface in self._interfaces:
+			devices.append(interface)
+
+		return devices
+
 
 	def get_device(self,deviceId):
 
-		for device in self.devices:
+		for device in self._interfaces:
 			if device.id == deviceId:
 				return device
 
@@ -37,7 +52,8 @@ class DeviceHandler():
 			@params: 	@device_id: string
 						@action_name: string, formatted as 
 										name_param1_param2
-			@return:	boolean, was the handling successful
+			@return:	device if the handling was successful
+								else None
 		"""
 		device = self.get_device(device_id)
 
@@ -48,6 +64,35 @@ class DeviceHandler():
 
 		return None
 
+	def handle_voice_command(self, vcommand):
+
+		"""go through devices, if device.command has this 
+
+		"""		
+		#give the command to the active device
+		if not vcommand.target and self.active_device:
+			#TODO
+			pass
+
+		if len(vcommand.arguments) == 0:
+			print("no arguments coming with the voice command")
+			return
+
+		action = vcommand.arguments[0]
+
+
+		for device in self._devices:			
+			#device has this command
+			if device.target == vcommand.target:
+
+				for command in device.commands:
+
+					if action == command['action']:
+						print("performing ", vcommand.target, " ", action , 
+							"\nfor device ", device)
+
+						command['action_func']()
+
 	
 	def read_devices(self):
 		"""read the device configs in device_folder"""
@@ -56,13 +101,13 @@ class DeviceHandler():
 
 		for file in files:
 
-			device = read_device_config(os.path.join(self.device_folder, file))
+			interface = DeviceInterface.intialize_device_interface(os.path.join(self.device_folder, file))
 
-			if device:
-				self.devices.append(device)
+			if interface:
+				self._interfaces.append(interface)
 
 
-		logging.debug("devices: {}".format(self.devices))
+		logging.debug("interfaces: {}".format(self._interfaces))
 
 
 	

@@ -85,10 +85,19 @@ class GoogleVoiceRecognition():
 		# Detects speech in the audio file
 		response = self.client.recognize(config, audio)
 
+
+		transcript = None
+		#only take the first result and the first transcript
 		for result in response.results:
 		    print('Transcript: {}'.format(result.alternatives[0].transcript))
-		    from pprint import pprint
-		    pprint(result)
+		    transcript = result.alternatives[0].transcript
+		    break
+
+
+		return transcript
+
+
+
 
 
 

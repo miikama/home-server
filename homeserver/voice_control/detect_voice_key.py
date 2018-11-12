@@ -96,5 +96,3 @@ class KeyWordDetector():
 		self.interrupted = True
 
 
-	def interrupt_callback(self):
-		return self.interrupted
