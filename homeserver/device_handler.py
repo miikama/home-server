@@ -34,7 +34,7 @@ class DeviceHandler():
 		devices = []
 
 		for interface in self._interfaces:
-			devices.append(interface)
+			devices.append(interface.devices)
 
 		return devices
 
@@ -81,15 +81,15 @@ class DeviceHandler():
 		action = vcommand.arguments[0]
 
 
-		for device in self._devices:			
+		for interface in self._interfaces:			
 			#device has this command
-			if device.target == vcommand.target:
+			if interface.target == vcommand.target:
 
-				for command in device.commands:
+				for command in interface.commands:
 
 					if action == command['action']:
 						print("performing ", vcommand.target, " ", action , 
-							"\nfor device ", device)
+							"\nfor device ", interface)
 
 						command['action_func']()
 

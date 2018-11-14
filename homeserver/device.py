@@ -5,7 +5,7 @@ import importlib
 from homeserver import app
 
 
-from phue import Bridge
+from phue import Bridge, Light
 import random
 
 
@@ -16,6 +16,12 @@ class DeviceInterface():
 	"""
 
 	_devices = []
+
+	#2d array of [["valot", "päälle", func ] ]
+	commands = []
+
+	#used to give this device commands
+	target = None
 
 	def __init__(self, config):
 
@@ -71,69 +77,6 @@ class DeviceInterface():
 		"""
 
 
-
-
-
-class PhilipsLampInterface(DeviceInterface):
-	
-	def __init__(self, config):
-
-		"""The class initialized should match the one in the 
-			config
-		"""
-		if not config['DEFAULT']['DEVICE_CLASS'] == type(self).__name__:
-			raise NameError("trying to initialize {}, which is not this class {}".format(config['DEFAULT']['DEVICE_CLASS'], cls.__name__))
-		
-		#immediately create an instance of the correct class
-		new_device = PhilipsLamp(self, config)
-
-		self._devices = [new_device]
-
-
-		
-
-
-class SamsungTvInterface(DeviceInterface):	
-
-	def __init__(self, config):
-		"""The class initialized should match the one in the 
-			config
-		"""		
-		if not config['DEFAULT']['DEVICE_CLASS'] == type(self).__name__:
-			raise NameError("trying to initialize {}, which is not class {}".format(config['DEFAULT']['DEVICE_CLASS'], cls.__name__))
-		
-		#immediately create an instance of the correct class
-		new_device = SamsungTV(config)
-
-		self._devices = [new_device]
-
-
-
-
-class Device(object):
-	"""
-	The parent class for all the devices
-	"""
-	def __init__(self, config):
-
-		logging.debug("initialiasing {}".format(config['DEFAULT']['FULL_NAME']) )
-
-		self.nice_name = config['DEFAULT']['NICE_NAME']
-		self.full_name = config['DEFAULT']['FULL_NAME']
-		self.location = config['DEFAULT']['LOCATION']
-		self.id = config['DEFAULT']['DEVICE_ID']
-
-		self.is_on = False
-		self.enabled = True
-
-		#2d array of [["valot", "päälle", func ] ]
-		self.commands = []
-
-		#used to give this device commands
-		self.target = None
-
-
-
 	def perform_action(self, action_name):
 		"""
 		this function will be given an action_name as parameter, it will check if such an action exists
@@ -153,7 +96,105 @@ class Device(object):
 			
 		except Exception as e:
 			raise e
+
+
+
+
+
+class PhilipsLampInterface(DeviceInterface):
+	
+	def __init__(self, config):
+
+		"""The class initialized should match the one in the 
+			config
+		"""
+		if not config['DEFAULT']['DEVICE_CLASS'] == type(self).__name__:
+			raise NameError("trying to initialize {}, which is not this class {}".format(config['DEFAULT']['DEVICE_CLASS'], cls.__name__))
+
+		self.config = config
+
+		#get the dridge	
+		self.bridge = Bridge(config['DEFAULT']['HUE_BRIDGE_IP'])
+
+
+		self.target = "valot"
+
+		#2d array of [["valot", "päälle", func ] ]
+		self.commands = [ {'action':"päälle", 'action_func':self.toggleOn},
+						{'action':"pois", 'action_func':self.toggleOff}	 ]
+
+		self.bridge_id = int(config['DEFAULT']['DEVICE_ID'])
+
+	@property
+	def devices(self):
+		lights = self.bridge.get_light_objects()
+		mylights = []
+		for i,light in enumerate(lights):
+			mylights.append(PhilipsLamp(light, self.bridge_id+i+1))
+		return mylights
+
+
+	def toggleOn(self):
+
+		lights = self.bridge.get_light_objects()
+
+		lights_reachable = 0
+
+		for light in lights:
+			if light.reachable:
+				lights_reachable += 1
+				light.brightness = 254
+
+		return lights_reachable > 0
+			
+
+
+	def toggleOff(self):
+
+		lights = self.bridge.get_light_objects()
+
+		lights_reachable = 0
+
+		for light in lights:
+			if light.reachable:
+				lights_reachable += 1
+				light.brightness = 0
+
+		return lights_reachable > 0
+
+	def __repr__(self):
+		return "PhilipslampInterface"
+			
+
 		
+
+
+class SamsungTvInterface(DeviceInterface):	
+
+	def __init__(self, config):
+		"""The class initialized should match the one in the 
+			config
+		"""		
+		if not config['DEFAULT']['DEVICE_CLASS'] == type(self).__name__:
+			raise NameError("trying to initialize {}, which is not class {}".format(config['DEFAULT']['DEVICE_CLASS'], cls.__name__))
+		
+		#immediately create an instance of the correct class
+		new_device = SamsungTV( nice_name = config['DEFAULT']['NICE_NAME'],
+								full_name = config['DEFAULT']['FULL_NAME'],
+								location = config['DEFAULT']['LOCATION'],
+								dev_id = config['DEFAULT']['DEVICE_ID'],
+								is_on = False,
+								enabled = True)
+
+		self._devices = [new_device]
+
+
+		self.target = "tv"
+
+		#2d array of [["valot", "päälle", func ] ]
+		self.commands = [ {'action':"päälle", 'action_func':self.toggleOn},
+						{'action':"pois", 'action_func':self.toggleOff}	 ]	
+
 
 	def toggleOn(self):
 		"""
@@ -178,72 +219,36 @@ class Device(object):
 
 
 
+class Device(object):
+	"""
+	The parent class for all the devices
+	"""
+	def __init__(self, nice_name, full_name, location, dev_id, is_on, enabled):
+
+		logging.debug("initialiasing {}".format(full_name) )
+
+		self.nice_name = nice_name
+		self.full_name = full_name
+		self.location = location
+		self.id = dev_id
+
+		self.is_on = is_on
+		self.enabled = enabled
 
 
 
-class PhilipsLamp(Device):
+class PhilipsLamp(Light):
 
-	def __init__(self, interface, config):
+	def __init__(self, light, light_id):
 
-		# calling the parent class constructor first
-		super().__init__(config)
+		mname = light.name
+		self.nice_name = mname
+		self.full_name = mname
+		self.location = mname
+		self.id = light_id
 
-		self.target = "valot"
-
-		#2d array of [["valot", "päälle", func ] ]
-		self.commands = [ {'action':"päälle", 'action_func':self.toggleOn},
-						{'action':"pois", 'action_func':self.toggleOff}	 ]
-
-	def toggleOn(self):
-
-
-
-		b = Bridge(app.config['HUE_BRIDGE_IP'])
-
-		# If the app is not registered and the button is not pressed, press the button and call connect() (this only needs to be run a single time)
-		#b.connect()
-
-		# Get the bridge state (This returns the full dictionary that you can explore)
-		b.get_api()
-
-		from pprint import pprint
-
-		lights = b.get_light_objects()
-
-		pprint(lights)
-
-		for light in lights:
-			light.brightness = 254
-		light.xy = [random.random(),random.random()]
-
-		return super(PhilipsLamp,self).toggleOn()
-
-
-
-
-	def toggleOff(self):
-
-		b = Bridge(app.config['HUE_BRIDGE_IP'])
-
-		# If the app is not registered and the button is not pressed, press the button and call connect() (this only needs to be run a single time)
-		#b.connect()
-
-		# Get the bridge state (This returns the full dictionary that you can explore)
-		b.get_api()
-
-		from pprint import pprint
-
-		lights = b.get_light_objects()
-
-		pprint(lights)
-
-		for light in lights:
-			light.brightness = 0
-		light.xy = [random.random(),random.random()]
-
-
-		return super(PhilipsLamp,self).toggleOff()
-
+		self.is_on = light.on
+		self.enabled = light.reachable
 
 
 	def __repr__(self):
@@ -259,17 +264,6 @@ class PhilipsLamp(Device):
 
 
 class SamsungTV(Device, DeviceInterface):
-
-	def __init__(self, config):
-
-		# calling the parent class constructor first
-		super(SamsungTV,self).__init__(config)
-
-		self.target = "tv"
-
-		#2d array of [["valot", "päälle", func ] ]
-		self.commands = [ {'action':"päälle", 'action_func':self.toggleOn},
-						{'action':"pois", 'action_func':self.toggleOff}	 ]	
 
 	def __repr__(self):
 		return "SamsungTV object enabled: {}, on: {}".format( self.enabled, self.is_on)
