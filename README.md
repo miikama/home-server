@@ -36,9 +36,9 @@ deactivate
 
 Check install instructions for snowboy on https://github.com/Kitt-AI/snowboy. Needs swig 3.0.10 installed. Here a copy of the instructions at the time
 
-Install the atlas matrix computing library and sox
+Install the atlas matrix computing library and sox. AND Pulseaudio (not mentioned in snowboy requirements but was needed in Raspberry Pi)
 
-```shell sudo apt-get install sox libatlas-base-dev ```
+```shell sudo apt-get install sox libatlas-base-dev pulseaudio```
 
 Compile a supported swig version (3.0.10 or above)
 
@@ -66,9 +66,9 @@ Update the path to google API credentials and your own Snowboy model in a file s
 
 On Raspberry pi 3 ssh is disabled by default. Go to Settings-> Raspberry Pi Configuration -> Interfaces -> enable ssh. Restrict the access to the device to only local network by adding a tcp. 
 
-In a file /etc/hosts.deny, add line ´´´shell ALL : ALL´´´ To deny all incoming connections. 
+In a file /etc/hosts.deny, add line ```shell ALL : ALL``` To deny all incoming connections. 
 
-In file /etc/hosts.allow, add line  ´´´shell sshd : 192.168.0. ´´´ to add an exception and allow ssh connections from local subnet.
+In file /etc/hosts.allow, add line  ```shell sshd : 192.168.0.``` to add an exception and allow ssh connections from local subnet.
 
 ### parts
 

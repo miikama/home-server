@@ -1,11 +1,12 @@
 import logging
 import configparser
 import importlib
+import time, os
 
 from homeserver import app
 
 
-from phue import Bridge, Light
+from phue import Bridge, Light, PhueRegistrationException
 import random
 
 
@@ -112,10 +113,8 @@ class PhilipsLampInterface(DeviceInterface):
 			raise NameError("trying to initialize {}, which is not this class {}".format(config['DEFAULT']['DEVICE_CLASS'], cls.__name__))
 
 		self.config = config
-
-		#get the dridge	
-		self.bridge = Bridge(config['DEFAULT']['HUE_BRIDGE_IP'])
-
+		
+		self.bridge = self.connect_to_hue_bridge(config)
 
 		self.target = "valot"
 
@@ -124,6 +123,26 @@ class PhilipsLampInterface(DeviceInterface):
 						{'action':"pois", 'action_func':self.toggleOff}	 ]
 
 		self.bridge_id = int(config['DEFAULT']['DEVICE_ID'])
+
+	def connect_to_hue_bridge(self, config):
+		"""
+		function to establish a connection to the hue bridge
+		"""
+
+		bridge = None
+
+		max_connect_tries = 3		
+		for i in range(max_connect_tries):
+			try:				
+				#get the dridge	
+				bridge = Bridge(config['DEFAULT']['HUE_BRIDGE_IP'],
+								 config_file_path=config['DEFAULT']['HUE_CONFIG_FILE'])
+				break
+			except PhueRegistrationException:
+				print("push the button on the hue bridge, waiting 15 sec for {}:th attempt out of {}".format(i+1, max_connect_tries))
+				time.sleep(15)			
+
+		return bridge
 
 	@property
 	def devices(self):
