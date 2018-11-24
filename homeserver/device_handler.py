@@ -91,7 +91,11 @@ class DeviceHandler():
 						print("performing ", vcommand.target, " ", action , 
 							"\nfor device ", interface)
 
-						command['action_func']()
+
+						if len(vcommand.arguments) > 1:							
+							command['action_func'](*vcommand.arguments[1:])
+						else:
+							command['action_func']()
 
 	
 	def read_devices(self):

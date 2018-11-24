@@ -10,6 +10,7 @@ from phue import Bridge, Light, PhueRegistrationException
 import random
 
 
+
 class DeviceInterface():
 	"""
 	A class that hides the fact that multiple devices are controlled by 
@@ -119,8 +120,10 @@ class PhilipsLampInterface(DeviceInterface):
 		self.target = "valot"
 
 		#2d array of [["valot", "päälle", func ] ]
-		self.commands = [ {'action':"päälle", 'action_func':self.toggleOn},
-						{'action':"pois", 'action_func':self.toggleOff}	 ]
+		self.commands = [ {'action':"päälle", 'action_func':self.toggle_on},
+						{'action':"pois", 'action_func':self.toggle_off},
+						{'action':"alas", 'action_func':self.dim_lights},
+						{'action':"ylös", 'action_func':self.brighten_lights}	 ]
 
 		self.bridge_id = int(config['DEFAULT']['DEVICE_ID'])
 
@@ -153,7 +156,7 @@ class PhilipsLampInterface(DeviceInterface):
 		return mylights
 
 
-	def toggleOn(self):
+	def toggle_on(self, *args):
 
 		lights = self.bridge.get_light_objects()
 
@@ -164,11 +167,10 @@ class PhilipsLampInterface(DeviceInterface):
 				lights_reachable += 1
 				light.brightness = 254
 
-		return lights_reachable > 0
-			
+		return lights_reachable > 0	
 
 
-	def toggleOff(self):
+	def toggle_off(self, *args):
 
 		lights = self.bridge.get_light_objects()
 
@@ -183,7 +185,59 @@ class PhilipsLampInterface(DeviceInterface):
 
 	def __repr__(self):
 		return "PhilipslampInterface"
-			
+
+	def dim_lights(self, *args):	
+
+		print("dimming lights with args: ", args)	
+
+		percent = 0.1
+		coeff = 1
+		if len(args) > 0:
+			try:
+				coeff = int(args[0])
+			except:
+				pass
+		percent = coeff * percent
+
+
+		lights = self.bridge.get_light_objects()
+		lights_reachable = 0
+
+		for light in lights:
+			if light.reachable:
+				lights_reachable += 1
+				cur_brightness = light.brightness
+				print("vanha kirkkaus: ", cur_brightness)
+				light.brightness = max(0, int(light.brightness - percent*254))
+				print("uusi kirkkaus: ", light.brightness)
+
+		return lights_reachable > 0
+
+	def brighten_lights(self, *args):	
+
+		print("brightening lights with args: ", args)	
+
+		percent = 0.1
+		coeff = 1
+		if len(args) > 0:
+			try:
+				coeff = int(args[0])
+			except:
+				pass
+		percent = coeff * percent	
+
+		lights = self.bridge.get_light_objects()
+		lights_reachable = 0
+
+		for light in lights:
+			if light.reachable:
+				lights_reachable += 1
+				cur_brightness = light.brightness
+				print("vanha kirkkaus: ", cur_brightness)
+				light.brightness = min(254, int(light.brightness +  254 * percent))
+				print("uusi kirkkaus: ", light.brightness)
+
+		return lights_reachable > 0			
 
 		
 

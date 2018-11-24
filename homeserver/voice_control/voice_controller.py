@@ -87,8 +87,8 @@ class VoiceController():
 		self.interrupted = False
 
 		#some parameters, seem okay for two word command
-		self.silent_count_threshold = 7	
-		self.recording_timeout = 5
+		self.silent_count_threshold = 15
+		self.recording_timeout = 15
 
 
 		self.detector = HotwordDetector(app.config['SNOWBOY_MODEL'], sensitivity=0.5)
