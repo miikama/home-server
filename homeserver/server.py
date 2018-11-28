@@ -16,6 +16,7 @@ def home():
 
 @app.route("/devices", methods=["GET", "POST"])
 def devices():
+	print("devices: {}".format(device_handler.devices))
 	return render_template('devices.html', devices=device_handler.devices, title="Devices")
 	
 

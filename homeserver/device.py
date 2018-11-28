@@ -9,6 +9,14 @@ from homeserver import app
 from phue import Bridge, Light, PhueRegistrationException
 import random
 
+class DeviceCommand():
+
+	def __init__(self,target, action, action_func):
+
+		self.target_device = target
+		self.action = action
+		self.action_func = action_func
+
 
 
 class DeviceInterface():
@@ -39,6 +47,10 @@ class DeviceInterface():
 	@property
 	def devices(self):
 		return self._devices
+
+	def command_subjects(self,vcommand):
+		"""Abstract base method	"""
+		return NotImplementedError("Abstract base class")
 
 
 	@classmethod
@@ -77,6 +89,15 @@ class DeviceInterface():
 		device objects or 
 
 		"""
+
+	def get_voice_keywords(self):
+		""" Returns list of strings """
+		keywords = []
+		if self.target:
+			keywords.append(self.target)
+		for command in self.commands:
+			keywords.append(command.action)
+		return keywords
 
 
 	def perform_action(self, action_name):
@@ -119,11 +140,11 @@ class PhilipsLampInterface(DeviceInterface):
 
 		self.target = "valot"
 
-		#2d array of [["valot", "päälle", func ] ]
-		self.commands = [ {'action':"päälle", 'action_func':self.toggle_on},
-						{'action':"pois", 'action_func':self.toggle_off},
-						{'action':"alas", 'action_func':self.dim_lights},
-						{'action':"ylös", 'action_func':self.brighten_lights}	 ]
+		self.commands = [ DeviceCommand(self.target, "päälle", self.toggle_on),
+							DeviceCommand(self.target, "pois", self.toggle_off),
+							DeviceCommand(self.target, "alas", self.dim_lights),
+							DeviceCommand(self.target, "ylös", self.brighten_lights)]
+
 
 		self.bridge_id = int(config['DEFAULT']['DEVICE_ID'])
 
@@ -155,90 +176,92 @@ class PhilipsLampInterface(DeviceInterface):
 			mylights.append(PhilipsLamp(light, self.bridge_id+i+1))
 		return mylights
 
+	def command_subjects(self, vcommand, light_id=None):
+		"""a middle man to before sending command to a light
+			Receives vargs, which is a list of extra voice command arguments
+		"""
+		print("command lights called")
+	
+		action = vcommand.arguments[0]
 
-	def toggle_on(self, *args):
+		func = None
+
+		for command in self.commands:
+			if action == command.action:
+				func = command.action_func
+				break
+
+		if not func:
+			return False
 
 		lights = self.bridge.get_light_objects()
-
 		lights_reachable = 0
 
 		for light in lights:
 			if light.reachable:
+				#if light id is given
+				if light_id and not(light_id == ligt.light_id):
+					continue
+
 				lights_reachable += 1
-				light.brightness = 254
+				func(light, vargs=vcommand.arguments[1:])
 
 		return lights_reachable > 0	
+			
 
 
-	def toggle_off(self, *args):
+	def toggle_on(self, light, vargs=[]):
 
-		lights = self.bridge.get_light_objects()
+		light.brightness = 254
+		
 
-		lights_reachable = 0
 
-		for light in lights:
-			if light.reachable:
-				lights_reachable += 1
-				light.brightness = 0
+	def toggle_off(self, light, vargs=[]):
 
-		return lights_reachable > 0
+		light.brightness = 0
 
-	def __repr__(self):
-		return "PhilipslampInterface"
 
-	def dim_lights(self, *args):	
 
-		print("dimming lights with args: ", args)	
+	def dim_lights(self, light, vargs=[]):	
+
+		print("dimming lights with args: ", vargs)	
 
 		percent = 0.1
 		coeff = 1
-		if len(args) > 0:
+		if len(vargs) > 0:
 			try:
-				coeff = int(args[0])
+				coeff = int(vargs[0])
 			except:
 				pass
 		percent = coeff * percent
 
+		cur_brightness = light.brightness
+		print("vanha kirkkaus: ", cur_brightness)
+		light.brightness = max(0, int(light.brightness - percent*254))
+		print("uusi kirkkaus: ", light.brightness)
 
-		lights = self.bridge.get_light_objects()
-		lights_reachable = 0
 
-		for light in lights:
-			if light.reachable:
-				lights_reachable += 1
-				cur_brightness = light.brightness
-				print("vanha kirkkaus: ", cur_brightness)
-				light.brightness = max(0, int(light.brightness - percent*254))
-				print("uusi kirkkaus: ", light.brightness)
+	def brighten_lights(self, light, vargs=[]):	
 
-		return lights_reachable > 0
-
-	def brighten_lights(self, *args):	
-
-		print("brightening lights with args: ", args)	
+		print("brightening lights with args: ", vargs)	
 
 		percent = 0.1
 		coeff = 1
-		if len(args) > 0:
+		if len(vargs) > 0:
 			try:
-				coeff = int(args[0])
+				coeff = int(vargs[0])
 			except:
 				pass
 		percent = coeff * percent	
 
-		lights = self.bridge.get_light_objects()
-		lights_reachable = 0
+		cur_brightness = light.brightness
+		print("vanha kirkkaus: ", cur_brightness)
+		light.brightness = min(254, int(light.brightness +  254 * percent))
+		print("uusi kirkkaus: ", light.brightness)
 
-		for light in lights:
-			if light.reachable:
-				lights_reachable += 1
-				cur_brightness = light.brightness
-				print("vanha kirkkaus: ", cur_brightness)
-				light.brightness = min(254, int(light.brightness +  254 * percent))
-				print("uusi kirkkaus: ", light.brightness)
 
-		return lights_reachable > 0			
-
+	def __repr__(self):
+		return "PhilipslampInterface"
 		
 
 
@@ -265,11 +288,23 @@ class SamsungTvInterface(DeviceInterface):
 		self.target = "tv"
 
 		#2d array of [["valot", "päälle", func ] ]
-		self.commands = [ {'action':"päälle", 'action_func':self.toggleOn},
-						{'action':"pois", 'action_func':self.toggleOff}	 ]	
+		self.commands = [ DeviceCommand(self.target, "päälle", self.toggle_on),
+						DeviceCommand(self.target, "pois", self.toggle_off)	 ]	
+
+	def command_subjects(self,vcommand):
+
+		action = vcommand.arguments[0]
+
+		for command in self.commands:
+			if action == command.action:
+				print("performing ", vcommand.target, " ", action , 
+					"\nfor device ", self)
+
+				command.action_func( vargs=vcommand.arguments[1:])
+		
 
 
-	def toggleOn(self):
+	def toggle_on(self):
 		"""
 			a dummy implementation
 		"""
@@ -279,7 +314,7 @@ class SamsungTvInterface(DeviceInterface):
 
 		return True
 
-	def toggleOff(self):
+	def toggle_off(self):
 		"""
 			a dummy implementation
 		"""

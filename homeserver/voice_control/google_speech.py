@@ -23,8 +23,7 @@ import os
 # Imports the Google Cloud client library
 # [START speech_python_migration_imports]
 from google.cloud import speech
-from google.cloud.speech import enums
-from google.cloud.speech import types
+from google.cloud.speech import enums, types
 
 # class for recording 
 from homeserver.voice_control.home_microphone import record_audio
@@ -68,23 +67,33 @@ class GoogleVoiceRecognition():
 		self.interpret_command(file_name)
 		
 
-	def interpret_command(self, file_name):
+	def interpret_command(self, file_name, keyphrases=[]):
+		"""
+			Sends given audio file (with full path) to google and returns 
+			the interpreted speech as string.
+			Keyphrases is an optional list of strings that helps google notice
+			keywords
+		"""
 
-
+		print("sending audio to google")
+		
 		# Loads the audio into memory
 		with io.open(file_name, 'rb') as audio_file:
 		    content = audio_file.read()
 		    audio = types.RecognitionAudio(content=content)
 
+		#loads the keyphrases into an object
+		speech_context = speech.types.SpeechContext(phrases=keyphrases)
+
 		config = types.RecognitionConfig(
 		    encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
 		    sample_rate_hertz=16000,
-		    language_code='fi-FI')
-			#en-US
+		    language_code='fi-FI',		    #en-US
+			speech_contexts=[speech_context])
+			
 
 		# Detects speech in the audio file
 		response = self.client.recognize(config, audio)
-
 
 		transcript = None
 		#only take the first result and the first transcript

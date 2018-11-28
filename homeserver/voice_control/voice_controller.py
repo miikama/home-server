@@ -54,7 +54,7 @@ class VoiceCommand():
 
 
 	def __repr__(self):
-		return "VoiceCommand on target {} with arguments: {}".format(self.target, *self.arguments)
+		return "VoiceCommand on target {} with arguments: {}".format(self.target, self.arguments)
 
 
 
@@ -83,12 +83,14 @@ class VoiceController():
 	def __init__(self, start=True):
 
 		self.google_recognizer = GoogleVoiceRecognition(app.config['GOOGLE_CREDENTIALS'])
+		#a list of strings to help google speect to text
+		self.google_keyphrases = device_handler.get_voice_keys()
 
 		self.interrupted = False
 
 		#some parameters, seem okay for two word command
-		self.silent_count_threshold = 15
-		self.recording_timeout = 15
+		self.silent_count_threshold = 2
+		self.recording_timeout = 10
 
 
 		self.detector = HotwordDetector(app.config['SNOWBOY_MODEL'], sensitivity=0.5)
@@ -140,7 +142,9 @@ class VoiceController():
 			recognizes what was said and then acts on the interpreted audio
 		"""
 
-		command_string = self.google_recognizer.interpret_command(fname)	
+		command_string = self.google_recognizer.interpret_command(
+									fname, 
+									keyphrases=self.google_keyphrases)	
 
 		print("command_string: ", command_string)
 

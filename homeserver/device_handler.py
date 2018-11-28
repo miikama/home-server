@@ -34,14 +34,16 @@ class DeviceHandler():
 		devices = []
 
 		for interface in self._interfaces:
-			devices.append(interface.devices)
+			devices_list = interface.devices
+			for device in devices_list:
+				devices.append(device)
 
 		return devices
 
 
 	def get_device(self,deviceId):
 
-		for device in self._interfaces:
+		for interface in self._interfaces:
 			if device.id == deviceId:
 				return device
 
@@ -78,24 +80,19 @@ class DeviceHandler():
 			print("no arguments coming with the voice command")
 			return
 
-		action = vcommand.arguments[0]
-
-
 		for interface in self._interfaces:			
 			#device has this command
 			if interface.target == vcommand.target:
+				interface.command_subjects(vcommand)
+				
 
-				for command in interface.commands:
-
-					if action == command['action']:
-						print("performing ", vcommand.target, " ", action , 
-							"\nfor device ", interface)
-
-
-						if len(vcommand.arguments) > 1:							
-							command['action_func'](*vcommand.arguments[1:])
-						else:
-							command['action_func']()
+	def get_voice_keys(self):
+		"""Returns the keywords for the voice commands as list of strings"""
+		keywords = []
+		for interface in self._interfaces:
+			keywords.append(interface.get_voice_keywords())
+		flatlist = [word for keys in keywords for word in keys ]
+		return flatlist
 
 	
 	def read_devices(self):
