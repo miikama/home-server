@@ -10,10 +10,11 @@ from phue import Bridge, Light, PhueRegistrationException
 import random
 
 class DeviceCommand():
+	"""wrapper class for internal use for the devices"""
 
-	def __init__(self,target, action, action_func):
-
-		self.target_device = target
+	def __init__(self,targets, action, action_func):
+		"""has target device, arguments,and a function to be called """
+		self.targets = targets
 		self.action = action
 		self.action_func = action_func
 
@@ -25,13 +26,7 @@ class DeviceInterface():
 	a single control point
 	"""
 
-	_devices = []
-
-	#2d array of [["valot", "päälle", func ] ]
-	commands = []
-
-	#used to give this device commands
-	target = None
+	
 
 	def __init__(self, config):
 
@@ -41,6 +36,14 @@ class DeviceInterface():
 		The class initialized should match the one in the config		
 		"""
 
+		self._devices = []
+
+		#2d array of [["valot", "päälle", func ] ]
+		self.commands = []
+
+		#set used to give this device commands
+		self.targets = None
+
 		raise NotImplementedError("Abstract base class")
 
 
@@ -49,8 +52,12 @@ class DeviceInterface():
 		return self._devices
 
 	def command_subjects(self,vcommand):
-		"""Abstract base method	"""
-		return NotImplementedError("Abstract base class")
+		"""Base methods, common error checking for all base classes implemented here"""
+
+		if vcommand.target not in self.targets:
+			raise ValueError("The voicecommand target should be found in the Devicecommand targets")
+		
+		#return NotImplementedError("Abstract base class")
 
 
 	@classmethod
@@ -93,8 +100,9 @@ class DeviceInterface():
 	def get_voice_keywords(self):
 		""" Returns list of strings """
 		keywords = []
-		if self.target:
-			keywords.append(self.target)
+		if self.targets is not None:
+			for target in self.targets:
+				keywords.append(target)
 		for command in self.commands:
 			keywords.append(command.action)
 		return keywords
@@ -138,12 +146,12 @@ class PhilipsLampInterface(DeviceInterface):
 		
 		self.bridge = self.connect_to_hue_bridge(config)
 
-		self.target = "valot"
+		self.targets = set(["valot", "philips_light"])
 
-		self.commands = [ DeviceCommand(self.target, "päälle", self.toggle_on),
-							DeviceCommand(self.target, "pois", self.toggle_off),
-							DeviceCommand(self.target, "alas", self.dim_lights),
-							DeviceCommand(self.target, "ylös", self.brighten_lights)]
+		self.commands = [ DeviceCommand(self.targets, "päälle", self.toggle_on),
+							DeviceCommand(self.targets, "pois", self.toggle_off),
+							DeviceCommand(self.targets, "alas", self.dim_lights),
+							DeviceCommand(self.targets, "ylös", self.brighten_lights)]
 
 
 		self.bridge_id = int(config['DEFAULT']['DEVICE_ID'])
@@ -180,7 +188,7 @@ class PhilipsLampInterface(DeviceInterface):
 		"""a middle man to before sending command to a light
 			Receives vargs, which is a list of extra voice command arguments
 		"""
-		print("command lights called")
+		super().command_subjects(vcommand) #error handling
 	
 		action = vcommand.arguments[0]
 
@@ -285,15 +293,17 @@ class SamsungTvInterface(DeviceInterface):
 		self._devices = [new_device]
 
 
-		self.target = "tv"
+		self.targets = set(["tv", "samsung_tv"])
 
 		#2d array of [["valot", "päälle", func ] ]
-		self.commands = [ DeviceCommand(self.target, "päälle", self.toggle_on),
-						DeviceCommand(self.target, "pois", self.toggle_off)	 ]	
+		self.commands = [ DeviceCommand(self.targets, "päälle", self.toggle_on),
+						DeviceCommand(self.targets, "pois", self.toggle_off)	 ]	
 
 	def command_subjects(self,vcommand):
+		# error handling
+		super().command_subjects(vcommand) 
 
-		action = vcommand.arguments[0]
+		action = vcommand.arguments[0]		
 
 		for command in self.commands:
 			if action == command.action:

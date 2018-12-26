@@ -67,10 +67,12 @@ class DeviceHandler():
 		return None
 
 	def handle_voice_command(self, vcommand):
-
-		"""go through devices, if device.command has this 
+		"""
+			Check if the voice command target matches any device target
+			go through devices, if device.command has this 
 
 		"""		
+
 		#give the command to the active device
 		if not vcommand.target and self.active_device:
 			#TODO
@@ -82,17 +84,20 @@ class DeviceHandler():
 
 		for interface in self._interfaces:			
 			#device has this command
-			if interface.target == vcommand.target:
+			if interface.target in vcommand.targets:
 				interface.command_subjects(vcommand)
 				
 
 	def get_voice_keys(self):
-		"""Returns the keywords for the voice commands as list of strings"""
+		"""
+			Returns the keywords for the voice commands as list of strings,
+			used as keywords for the google speech to text api
+		"""
 		keywords = []
 		for interface in self._interfaces:
 			keywords.append(interface.get_voice_keywords())
 		flatlist = [word for keys in keywords for word in keys ]
-		return flatlist
+		return flatlist # list of strings
 
 	
 	def read_devices(self):
