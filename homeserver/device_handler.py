@@ -16,8 +16,9 @@ class DeviceHandler():
 		"""is given the folder of the device_configs as parameter"""
 		
 		# list of all the device objects
-		self._interfaces = [];
+		self._interfaces = []
 
+		#folder where all the device configs live
 		self.device_folder = folder
 
 		self.read_devices()
@@ -25,11 +26,21 @@ class DeviceHandler():
 		self.active_device = None
 
 	@property
+	def interfaces(self):
+		""""""
+		return self._interfaces
+
+	def add_interface(self, interface):
+		self._interfaces.append(interface)
+
+
+	@property
 	def devices(self):
-		""" Some devices have interfaces (such as philips lamps),
+		"""
+			Some devices have interfaces (such as philips lamps),
 			which control multiple different devices. Interface is used 
 			to get devices of the same type. This property is used
-			 to hide this and return individual device objects
+			to hide this and return individual device objects
 		"""
 		devices = []
 
@@ -40,11 +51,10 @@ class DeviceHandler():
 
 		return devices
 
-
-	def get_device(self,deviceId):
+	def get_device(self,device_id):
 
 		for interface in self._interfaces:
-			if device.id == deviceId:
+			if device.id == device_id:
 				return device
 
 		return None

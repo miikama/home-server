@@ -27,14 +27,13 @@ for key in config.keys():
 from homeserver.device_handler import DeviceHandler
 device_handler = DeviceHandler( os.path.join( app_path, 'device_configs') )
 
-
-
 #get the webpage rolling
 from homeserver import server  
 
 #start voice control
 from homeserver.voice_control.voice_controller import VoiceController
 voice_controller = VoiceController(start=True)
+device_handler.add_interface(voice_controller)
 
 
 

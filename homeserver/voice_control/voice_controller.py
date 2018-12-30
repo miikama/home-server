@@ -3,11 +3,16 @@
 from homeserver.voice_control.google_speech import GoogleVoiceRecognition
 from homeserver.voice_control.snowboydecoder import HotwordDetector, play_audio_file
 
+#make the voicecontrol follow the device interface structure for control
+from homeserver.device import DeviceInterface
+
+
 from homeserver import app, device_handler
 
 import logging
 import datetime
 import threading 
+
 
 
 
@@ -78,9 +83,20 @@ class VoiceThread(threading.Thread):
 
 
 
-class VoiceController():
+
+class VoiceController(DeviceInterface):
 
 	def __init__(self, start=True):
+
+		#### variables for the DeviceInterface ###
+		self.name="Voice Control"
+		self.connected = True
+		self.is_on = True
+		self._devices = []
+		self.targets = set()
+		self.commands = []
+		### #############  ###
+
 
 		self.google_recognizer = GoogleVoiceRecognition(app.config['GOOGLE_CREDENTIALS'])
 		#a list of strings to help google speect to text
@@ -142,9 +158,8 @@ class VoiceController():
 			recognizes what was said and then acts on the interpreted audio
 		"""
 
-		command_string = self.google_recognizer.interpret_command(
-									fname, 
-									keyphrases=self.google_keyphrases)	
+		command_string = self.google_recognizer.interpret_command(fname, 
+													keyphrases=self.google_keyphrases)	
 
 		print("command_string: ", command_string)
 
@@ -164,7 +179,7 @@ class VoiceController():
 	def stop_detection(self):
 		print("stopping detection")
 		self.interrupted = True
-		self.p.terminate()
+		self.vthread.terminate()
 
 
 	def interrupt_callback(self):

@@ -2,12 +2,25 @@ import logging
 import configparser
 import importlib
 import time, os
+import threading
 
 from homeserver import app
 
 
-from phue import Bridge, Light, PhueRegistrationException
+from phue import Bridge, Light, PhueRegistrationException, PhueRequestTimeout
 import random
+
+
+
+
+
+
+###################### classes used internally by the interfaces #######################
+
+
+
+
+
 
 class DeviceCommand():
 	"""wrapper class for internal use for the devices"""
@@ -19,6 +32,40 @@ class DeviceCommand():
 		self.action_func = action_func
 
 
+class StateUpdateThread(threading.Thread):
+
+	def __init__(self, interface=None, wait_time=30, **kvargs):
+		self.pause_updates = threading.Event()
+		self.stop_thread = threading.Event()
+		self.interface =interface
+		self.wait_time = wait_time
+		super().__init__(**kvargs)
+
+	def run(self):
+
+		while not self.stop_thread.is_set():
+			if not self.pause_updates.is_set():
+				logging.info("updating {}".format(self.interface))				
+				self.interface.update_devices()
+			time.sleep(self.wait_time)
+
+
+
+
+
+
+
+
+
+
+############### A base class for all interfaces #########################
+
+
+
+
+
+
+
 
 class DeviceInterface():
 	"""
@@ -28,7 +75,7 @@ class DeviceInterface():
 
 	
 
-	def __init__(self, config):
+	def __init__(self, config=None):
 
 		""" Loads a config file and uses the DEVICE_CLASS parameter of 
 		the config file to instantiate a right device class
@@ -36,20 +83,28 @@ class DeviceInterface():
 		The class initialized should match the one in the config		
 		"""
 
-		self._devices = []
+		self.name = "default interface name"
 
-		#2d array of [["valot", "päälle", func ] ]
-		self.commands = []
+		self.connected = False	
 
-		#set used to give this device commands
-		self.targets = None
+		self.is_on = False
 
-		raise NotImplementedError("Abstract base class")
+		self._devices = []	# list of [Device]
+		
+		self.commands = [] # List of [DeviceCommand(), ...]
+		
+		self.targets = set() #set of strings this device can be commanded with
+
 
 
 	@property
 	def devices(self):
 		return self._devices
+
+	def update_devices(self):
+		""" function called from a thread which handles the state updates """
+		print("update_devices of the base class called")
+
 
 	def command_subjects(self,vcommand):
 		"""Base methods, common error checking for all base classes implemented here"""
@@ -58,6 +113,8 @@ class DeviceInterface():
 			raise ValueError("The voicecommand target should be found in the Devicecommand targets")
 		
 		#return NotImplementedError("Abstract base class")
+
+
 
 
 	@classmethod
@@ -128,6 +185,30 @@ class DeviceInterface():
 		except Exception as e:
 			raise e
 
+	def __repr__(self):
+		return "{} {}".format(type(self).__name__, self.name)
+
+	def __str__(self):
+		return "{} {}".format(type(self).__name__, self.name)
+
+
+
+
+
+
+
+
+
+
+###################### Interface for the philips lamp ######################
+
+
+
+
+
+
+
+
 
 
 
@@ -142,9 +223,11 @@ class PhilipsLampInterface(DeviceInterface):
 		if not config['DEFAULT']['DEVICE_CLASS'] == type(self).__name__:
 			raise NameError("trying to initialize {}, which is not this class {}".format(config['DEFAULT']['DEVICE_CLASS'], cls.__name__))
 
+		self.name = "Philips Lamp Bridge"
+		self.connected = False
+		self.is_on = False
+
 		self.config = config
-		
-		self.bridge = self.connect_to_hue_bridge(config)
 
 		self.targets = set(["valot", "philips_light"])
 
@@ -156,12 +239,26 @@ class PhilipsLampInterface(DeviceInterface):
 
 		self.bridge_id = int(config['DEFAULT']['DEVICE_ID'])
 
+		#dont connect to the bridge in the initialization because can timeout, 
+		#this will be done first time there is a call to the lights
+		#self.bridge = self.connect_to_hue_bridge(config)
+		self.bridge = None
+
+		#an offline list of all the devices 
+		self._devices = []
+
+
+		self.update_thread = StateUpdateThread(interface=self, wait_time=30)
+		self.update_thread.start()
+
+
 	def connect_to_hue_bridge(self, config):
-		"""
-		function to establish a connection to the hue bridge
-		"""
+		"""	function to establish a connection to the hue bridge """
 
 		bridge = None
+			
+		if not self.bridge_available:
+			return None
 
 		max_connect_tries = 3		
 		for i in range(max_connect_tries):
@@ -169,29 +266,62 @@ class PhilipsLampInterface(DeviceInterface):
 				#get the dridge	
 				bridge = Bridge(config['DEFAULT']['HUE_BRIDGE_IP'],
 								 config_file_path=config['DEFAULT']['HUE_CONFIG_FILE'])
+				self.connected = True				
 				break
 			except PhueRegistrationException:
-				print("push the button on the hue bridge, waiting 15 sec for {}:th attempt out of {}".format(i+1, max_connect_tries))
-				time.sleep(15)			
+				print("push the button on the hue bridge, waiting 15 sec for {	}:th attempt out of {}".format(i+1, max_connect_tries))
+				time.sleep(15)	
+			except PhueRequestTimeout:
+				#actually cannot timeout because initialising bridge does not check whether hue bridge is available
+				print("cannot connect to bridge")
+				break
 
 		return bridge
 
 	@property
-	def devices(self):
+	def bridge_available(self):
+		"""tries to make an api request to the bridge to see whether it is there in the expected ip"""
+		return False
+
+
+
+	def update_devices(self):
+		"""	
+			This method actually connects to hue bridge,
+			can timeout with PhueTimeoutException
+		"""
+		#connect to the bridge if not connected already, can timeout
+		if not self.bridge:
+			self.bridge = self.connect_to_hue_bridge(self.config)
+		#no connections established
+		if not self.bridge:
+			logging.info("NO CONNECTION TO HUE BRIDGE")
+			self.connected = False
+			self.is_on = False
+			return []
+
+
+
 		lights = self.bridge.get_light_objects()
 		mylights = []
 		for i,light in enumerate(lights):
 			mylights.append(PhilipsLamp(light, self.bridge_id+i+1))
 		return mylights
 
+
+
 	def command_subjects(self, vcommand, light_id=None):
 		"""a middle man to before sending command to a light
 			Receives vargs, which is a list of extra voice command arguments
 		"""
 		super().command_subjects(vcommand) #error handling
-	
-		action = vcommand.arguments[0]
 
+		#if we are not connected we cannot command device
+		if not self.connected:
+			return False
+		
+		#parse command	
+		action = vcommand.arguments[0]		
 		func = None
 
 		for command in self.commands:
@@ -202,13 +332,15 @@ class PhilipsLampInterface(DeviceInterface):
 		if not func:
 			return False
 
+
+
 		lights = self.bridge.get_light_objects()
 		lights_reachable = 0
 
 		for light in lights:
 			if light.reachable:
 				#if light id is given
-				if light_id and not(light_id == ligt.light_id):
+				if light_id and not (light_id == ligt.light_id):
 					continue
 
 				lights_reachable += 1
@@ -219,13 +351,11 @@ class PhilipsLampInterface(DeviceInterface):
 
 
 	def toggle_on(self, light, vargs=[]):
-
 		light.brightness = 254
 		
 
 
 	def toggle_off(self, light, vargs=[]):
-
 		light.brightness = 0
 
 
@@ -268,9 +398,22 @@ class PhilipsLampInterface(DeviceInterface):
 		print("uusi kirkkaus: ", light.brightness)
 
 
-	def __repr__(self):
-		return "PhilipslampInterface"
-		
+
+
+
+
+
+
+
+
+
+
+##################### Interface for the samsung TV (dummy implementation) ######################
+	
+
+
+
+
 
 
 class SamsungTvInterface(DeviceInterface):	
@@ -281,6 +424,11 @@ class SamsungTvInterface(DeviceInterface):
 		"""		
 		if not config['DEFAULT']['DEVICE_CLASS'] == type(self).__name__:
 			raise NameError("trying to initialize {}, which is not class {}".format(config['DEFAULT']['DEVICE_CLASS'], cls.__name__))
+
+
+		self.name = "Samsung TV"
+		self.connected = False
+		self.is_on = False
 		
 		#immediately create an instance of the correct class
 		new_device = SamsungTV( nice_name = config['DEFAULT']['NICE_NAME'],
@@ -291,6 +439,8 @@ class SamsungTvInterface(DeviceInterface):
 								enabled = True)
 
 		self._devices = [new_device]
+
+
 
 
 		self.targets = set(["tv", "samsung_tv"])
@@ -311,8 +461,6 @@ class SamsungTvInterface(DeviceInterface):
 					"\nfor device ", self)
 
 				command.action_func( vargs=vcommand.arguments[1:])
-		
-
 
 	def toggle_on(self):
 		"""
@@ -333,6 +481,22 @@ class SamsungTvInterface(DeviceInterface):
 		self.is_on = not self.is_on
 
 		return True
+
+
+
+
+
+
+
+
+
+
+################## separate Device classes #######################
+
+
+
+
+
 
 
 
@@ -371,11 +535,6 @@ class PhilipsLamp(Light):
 
 	def __repr__(self):
 		return "Philipslamp object enabled: {}, on: {}".format( self.enabled, self.is_on)
-
-
-
-
-
 
 
 

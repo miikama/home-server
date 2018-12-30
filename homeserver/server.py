@@ -1,7 +1,7 @@
 
-from flask import render_template, url_for, flash, redirect
+from flask import render_template, url_for, flash, redirect, jsonify
 from homeserver import device_handler,app
-
+import requests
 
 @app.errorhandler(404)
 def not_found_error(error):
@@ -15,9 +15,35 @@ def home():
 
 
 @app.route("/devices", methods=["GET", "POST"])
-def devices():
-	print("devices: {}".format(device_handler.devices))
-	return render_template('devices.html', devices=device_handler.devices, title="Devices")
+def devices():	
+	#TODO could return the last known state of the devices
+	interfaces = device_handler.interfaces
+	print([inf.name for inf in interfaces])
+	print([inf.is_on for inf in interfaces])
+	print([inf.connected for inf in interfaces])
+	print([inf.devices for inf in interfaces])
+	
+	return render_template('devices.html', interfaces=interfaces, title="Devices")
+
+
+@app.route("/update_device", methods=["POST"])
+def update_device():
+	print(requests.form)
+	device_id = requests.form.get('device_id')
+	device = device_handler.get_device(device_id)
+	if device:	
+		return render_template('device.html', device=device)
+	else:
+		return jsonify({'device':'not_found'})
+
+
+
+@app.route("/update_devices", methods=["POST"])
+def update_devices():	
+	""" separate function to asynchronously get the current states of the devices"""
+	return jsonify({'devices':self.device_handler.devices})
+
+
 	
 
 @app.route("/<deviceId>/<action>", methods=["POST"])
