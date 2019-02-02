@@ -38,7 +38,9 @@ Check install instructions for snowboy on https://github.com/Kitt-AI/snowboy. Ne
 
 Install the atlas matrix computing library and sox. AND Pulseaudio (not mentioned in snowboy requirements but was needed in Raspberry Pi)
 
-```shell sudo apt-get install sox libatlas-base-dev pulseaudio```
+```shell
+sudo apt-get install sox libatlas-base-dev pulseaudio
+```
 
 Compile a supported swig version (3.0.10 or above)
 
@@ -161,6 +163,41 @@ sudo apt-get install -qq python python-dev python-pip build-essential swig git l
 * user authentication with pressing a button on rasperry
 
 
+
+## The api for the web interface
+
+possible post requests 
+
+```shell
+commands: ['is_on':boolean]
+```
+
+the structure of a possible json representation of the state of all the interfaces the interface 
+
+```python
+{'data': [interface1, interface2, ...]}
+
+{'data': 
+[
+{
+'name': string,
+'connected': boolean,
+'is_on': boolean,
+'devices': [{'location':string,
+			'nice_name': string,
+			'full_name': string,
+			'location': string,
+			'id': string,
+			'is_on': boolean,
+			'enabled': boolean }]
+},
+interface2, ...
+]
+}
+```
+```python
+{}
+```
 
 ### snowboy
 

@@ -6,6 +6,10 @@ import os
 import logging
 
 
+
+
+
+
 class DeviceHandler():
 	'''
 	Class for interacting with devices
@@ -51,28 +55,40 @@ class DeviceHandler():
 
 		return devices
 
-	def get_device(self,device_id):
-
+	def get_interface(self,device_id):
+		"""
+			First go through the interfaces and devices within and command the interface
+			which has the argument id.
+			Returns the interface where the argument id is in
+			Finally if no device with id found return None.
+		"""
 		for interface in self._interfaces:
-			if device.id == device_id:
-				return device
+			if interface.dev_id == device_id:
+				return interface
+			for device in interface.devices:
+				if device.dev_id == device_id:
+					return interface
 
 		return None
 
-	def handle_action(self, device_id, action_name):
+	def handle_action(self, device_id, action_name, args=[]):
 		"""
 			@params: 	@device_id: string
 						@action_name: string, formatted as 
 										name_param1_param2
+						args is a list of strings
 			@return:	device if the handling was successful
 								else None
 		"""
-		device = self.get_device(device_id)
+		interface = self.get_device(device_id)
 
-		if device:
-			# pass the possible action to the device
-			if device.perform_action(action_name):
-				return device
+		if interface:
+			if action_name == "is_on":
+				if args[0] == "True":					
+					interface.toggle_on()
+				else:
+					interface.toggle_off()
+			
 
 		return None
 
@@ -124,6 +140,14 @@ class DeviceHandler():
 
 
 		logging.debug("interfaces: {}".format(self._interfaces))
+
+
+
+
+
+
+
+
 
 
 	

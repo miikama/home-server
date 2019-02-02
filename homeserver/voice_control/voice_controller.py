@@ -95,6 +95,7 @@ class VoiceController(DeviceInterface):
 		self._devices = []
 		self.targets = set()
 		self.commands = []
+		self.dev_id = 200000 #TODO read this from some config or smth
 		### #############  ###
 
 

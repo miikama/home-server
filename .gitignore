@@ -1,0 +1,7 @@
+__pycache__
+
+
+homeserver/serner.ini
+homeserver/server.log
+
+*.pyc

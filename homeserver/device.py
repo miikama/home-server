@@ -75,7 +75,7 @@ class DeviceInterface():
 
 	
 
-	def __init__(self, config=None):
+	def __init__(self, dev_id, config=None):
 
 		""" Loads a config file and uses the DEVICE_CLASS parameter of 
 		the config file to instantiate a right device class
@@ -84,6 +84,8 @@ class DeviceInterface():
 		"""
 
 		self.name = "default interface name"
+
+		self.dev_id = dev_id
 
 		self.connected = False	
 
@@ -237,7 +239,7 @@ class PhilipsLampInterface(DeviceInterface):
 							DeviceCommand(self.targets, "ylös", self.brighten_lights)]
 
 
-		self.bridge_id = int(config['DEFAULT']['DEVICE_ID'])
+		self.dev_id = int(config['DEFAULT']['DEVICE_ID'])
 
 		#dont connect to the bridge in the initialization because can timeout, 
 		#this will be done first time there is a call to the lights
@@ -305,7 +307,7 @@ class PhilipsLampInterface(DeviceInterface):
 		lights = self.bridge.get_light_objects()
 		mylights = []
 		for i,light in enumerate(lights):
-			mylights.append(PhilipsLamp(light, self.bridge_id+i+1))
+			mylights.append(PhilipsLamp(light, self.dev_id+i+1))
 		return mylights
 
 
@@ -429,7 +431,8 @@ class SamsungTvInterface(DeviceInterface):
 		self.name = "Samsung TV"
 		self.connected = False
 		self.is_on = False
-		
+		self.dev_id = int(config['DEFAULT']['DEVICE_ID'])
+
 		#immediately create an instance of the correct class
 		new_device = SamsungTV( nice_name = config['DEFAULT']['NICE_NAME'],
 								full_name = config['DEFAULT']['FULL_NAME'],
@@ -512,7 +515,7 @@ class Device(object):
 		self.nice_name = nice_name
 		self.full_name = full_name
 		self.location = location
-		self.id = dev_id
+		self.dev_id = dev_id
 
 		self.is_on = is_on
 		self.enabled = enabled
@@ -527,7 +530,7 @@ class PhilipsLamp(Light):
 		self.nice_name = mname
 		self.full_name = mname
 		self.location = mname
-		self.id = light_id
+		self.dev_id = light_id
 
 		self.is_on = light.on
 		self.enabled = light.reachable
