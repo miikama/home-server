@@ -1,6 +1,6 @@
 
 #from homeserver.server_config import read_device_config
-from homeserver.device import DeviceInterface
+from homeserver.interface import DeviceInterface
 
 import os
 import logging
@@ -15,6 +15,10 @@ class DeviceHandler():
 	Class for interacting with devices
 	'''
 
+	# static variable to count all initialized devices and interfaces 
+	# use to give device ids
+	counter = 0
+
 
 	def __init__(self, folder):
 		"""is given the folder of the device_configs as parameter"""
@@ -25,7 +29,9 @@ class DeviceHandler():
 		#folder where all the device configs live
 		self.device_folder = folder
 
-		self.read_devices()
+		interfaces = self.read_devices()
+		#register the interfaces
+		self.register_interfaces(interfaces)
 
 		self.active_device = None
 
@@ -108,9 +114,12 @@ class DeviceHandler():
 			print("no arguments coming with the voice command")
 			return
 
-		for interface in self._interfaces:			
-			#device has this command
-			if interface.target in vcommand.targets:
+		# go through each interface and check if the voicecommand target is 
+		# in inteface targets
+		for interface in self._interfaces:				
+			
+			if vcommand.target in interface.targets:
+				#device has this command
 				interface.command_subjects(vcommand)
 				
 
@@ -131,15 +140,47 @@ class DeviceHandler():
 
 		files = os.listdir(self.device_folder);
 
+		interfaces = []
+
 		for file in files:
 
-			interface = DeviceInterface.intialize_device_interface(os.path.join(self.device_folder, file))
+			interface = DeviceInterface.intialize_device_interface(self,os.path.join(self.device_folder, file))  
 
 			if interface:
-				self._interfaces.append(interface)
+				interfaces.append(interface)
 
 
-		logging.debug("interfaces: {}".format(self._interfaces))
+		logging.debug("Loaded interfaces: {}".format(self.interfaces))
+
+		return interfaces
+
+	def register_interfaces(self, interfaces):
+		"""
+		Register a list on interfaces
+		Add a unique id to all of them and add to the 
+		_interfaces dictionary: id: interface
+		"""
+
+		for interface in interfaces:
+
+			# add to global counter
+			DeviceHandler.counter += 1
+			# add a unique dev_id also to the interface
+			interface.dev_id = DeviceHandler.counter
+
+			self._interfaces.append(interface)
+
+	def register_device(self, device=None):
+		"""return a unique device id """
+
+		self.counter += 1
+
+		return self.counter
+
+
+
+
+
 
 
 

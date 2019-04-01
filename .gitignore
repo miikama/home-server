@@ -1,7 +1,22 @@
-__pycache__
 
-
-homeserver/serner.ini
+# NO .ini to git
+homeserver/server.ini
 homeserver/server.log
 
+# ignore python temp files
 *.pyc
+__pycache__
+
+# compiled voice control
+*.so
+
+# leave out of git
+*.json
+*.wav
+*.vaw
+
+# python virtual env
+henv
+
+# random local folders
+setitysta

@@ -1,6 +1,6 @@
 
 from flask import render_template, url_for, flash, redirect, jsonify
-from homeserver import device_handler,app
+from homeserver import app
 import requests
 
 
@@ -18,7 +18,7 @@ def home():
 @app.route("/devices", methods=["GET"])
 def devices():	
 	#TODO could return the last known state of the devices
-	interfaces = device_handler.interfaces
+	interfaces = app.device_handler.interfaces
 	print([inf.name for inf in interfaces])
 	print([inf.is_on for inf in interfaces])
 	print([inf.connected for inf in interfaces])
@@ -31,26 +31,29 @@ def device_status(device_id, command, arguments):
 	device_id = str(device_id)
 	command = str(command)
 	arguments = str(arguments).split('&')
-	device = device_handler.handle_action(device_id, command, arguments)
+	device = app.device_handler.handle_action(device_id, command, arguments)
 	if not device:				
 		flash('No success', 'danger')
 	#get the updated state of the devices
-	interface = device_handler.interfaces
+	interface = app.device_handler.interfaces
 	return devices()
 	
 
 
-#
-@app.route("/<deviceId>/<action>", methods=["POST"])
-def device_action(deviceId, action):
-	# Convert the device id from the URL into a string	
-	device_id = str(deviceId)
-	action_name = str(action) 	#  cast into string
-	#let the device handler handle the action	
-	device = device_handler.handle_action(device_id, action_name)
-	
+# route for controlling the devices
+@app.route("/<interface_id>/<device_id>/<action>", methods=["POST"])
+def device_action(deviceId, action):	
+	interface_id = str(interface_id)
+	device_id = str(device_id) # to string
+	action_name = str(action) 	#  to string
+	device_handler.handle_action(action=action_name, interface_id=interface_id, device_id=device_id)
+
+	status_dict =device_handler.get_status_json()
+
+	# get the status of the devices and return that as a response	
 	if not device:				
 		flash('No success', 'danger')
+
 	return redirect(url_for('devices'))
 
 

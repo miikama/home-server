@@ -4,10 +4,10 @@ from homeserver.voice_control.google_speech import GoogleVoiceRecognition
 from homeserver.voice_control.snowboydecoder import HotwordDetector, play_audio_file
 
 #make the voicecontrol follow the device interface structure for control
-from homeserver.device import DeviceInterface
+from homeserver.interface import DeviceInterface
 
 
-from homeserver import app, device_handler
+from homeserver import app
 
 import logging
 import datetime
@@ -95,13 +95,13 @@ class VoiceController(DeviceInterface):
 		self._devices = []
 		self.targets = set()
 		self.commands = []
-		self.dev_id = 200000 #TODO read this from some config or smth
+		self.dev_id = 200000 #TODO: read this from some config or smth
 		### #############  ###
 
 
 		self.google_recognizer = GoogleVoiceRecognition(app.config['GOOGLE_CREDENTIALS'])
 		#a list of strings to help google speect to text
-		self.google_keyphrases = device_handler.get_voice_keys()
+		self.google_keyphrases = app.device_handler.get_voice_keys()
 
 		self.interrupted = False
 
@@ -170,7 +170,7 @@ class VoiceController(DeviceInterface):
 
 			print("sending command to device_handler: ", command )
 
-			device_handler.handle_voice_command(command)
+			app.device_handler.handle_voice_command(command)
 
 
 
