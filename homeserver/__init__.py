@@ -8,11 +8,13 @@ from flask import Flask
 
 #the absolute path of this script
 app_path =  os.path.dirname(os.path.realpath(__file__))
+
 #config for the project
-from homeserver.server_config import load_config
+from homeserver.server_config import load_config, setup_logging
 config = load_config(os.path.join(app_path, 'server.ini'))
-#set the logging route
-logging.basicConfig(filename=os.path.join(app_path,config['LOG_FILE']),level=logging.DEBUG)
+
+# update logger settings
+logger =setup_logging(os.path.join(app_path,config['LOG_FILE']))
 
 
 #now init the app with logging set up

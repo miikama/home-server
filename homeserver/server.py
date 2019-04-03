@@ -40,20 +40,33 @@ def device_status(device_id, command, arguments):
 	
 
 
-# route for controlling the devices
-@app.route("/<interface_id>/<device_id>/<action>", methods=["POST"])
-def device_action(deviceId, action):	
+@app.route('/device_action/<interface_id>/<action>'				, methods=["POST"])
+@app.route('/device_action/<interface_id>/<device_id>/<action>' , methods=["POST"])
+def device_action(interface_id, action, device_id=None):
+	"""
+		Main interface point
+	"""
 	interface_id = str(interface_id)
-	device_id = str(device_id) # to string
-	action_name = str(action) 	#  to string
-	device_handler.handle_action(action=action_name, interface_id=interface_id, device_id=device_id)
 
-	status_dict =device_handler.get_status_json()
+	if device_id is not None:
+		device_id = str(device_id) # to string
+	if action is not None:
+		action = str(action) 	#  to string
 
-	# get the status of the devices and return that as a response	
-	if not device:				
-		flash('No success', 'danger')
+	print("interface id: ", interface_id)
+	print("device id: ", device_id)
 
-	return redirect(url_for('devices'))
 
+	app.device_handler.handle_action(interface_id=interface_id, action_name=action,  device_id=device_id )
+
+	# return 
+	status_dict =app.device_handler.get_status_json()
+
+	print("returning status: ", status_dict)
+
+	return jsonify(status_dict)
+
+@app.route("/status", methods=["POST"])
+def status():
+	return jsonify(app.device_handler.get_status_json())
 

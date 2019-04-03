@@ -19,6 +19,19 @@ import threading
 class VoiceCommand():
 
 	"""a class encapsulating the voice commands
+
+
+		Possible interfaces:
+			PhilipsLamp:
+				targets:  "valot", "philips_light"
+
+				commands: "päälle", "pois", "alas", "ylös"
+
+			SamsungTV:
+				targets: "tv", "samsung_tv"
+		
+				commands: "päälle", "pois"
+
 	"""
 
 	def __init__(self, target=None,arguments=[] ):
@@ -57,10 +70,20 @@ class VoiceCommand():
 			return cls(target=target, arguments=args)
 
 
+	@classmethod
+	def command_from_api(cls, target, command_name):
+		"""
+			Class constructor from the interface
+
+		"""
+
+		return cls(target=target, arguments=[command_name])
+
+
+
 
 	def __repr__(self):
 		return "VoiceCommand on target {} with arguments: {}".format(self.target, self.arguments)
-
 
 
 
@@ -162,13 +185,13 @@ class VoiceController(DeviceInterface):
 		command_string = self.google_recognizer.interpret_command(fname, 
 													keyphrases=self.google_keyphrases)	
 
-		print("command_string: ", command_string)
+		logging.debug("command_string: ", command_string)
 
 		if command_string:	
 
 			command = VoiceCommand.command_from_string(command_string)
 
-			print("sending command to device_handler: ", command )
+			logging.debug("sending command to device_handler: ", command )
 
 			app.device_handler.handle_voice_command(command)
 

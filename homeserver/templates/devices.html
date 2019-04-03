@@ -3,72 +3,33 @@
 
 	 <script type="text/javascript">
 
-	 	function GetUpdatedDeviceInfo(){
- 			console.log("getting device status"); 			
-	 	}
+        let pollRunning = false;
 
-	 	function MakeDeviceDiv(device, target_element){	 	
-	 		console.log("target_element")
-	 		console.log(target_element)
-
-	 		let div1 = document.createElement('div');
-	 		div1.className =  "bg-white mt-2 p-2 rounded-top";
-	 		let nameHeader = document.createElement('h3');
-	 		nameHeader.innerHTML = device.nice_name;
-
-	 		let divloc1 = document.createElement('div');
-	 		divloc1.className = "row"
-	 		let divloc2 = document.createElement('div');v
-			divloc2.className = "row"
-
-
-	 		//putting it all together
-	 		div1.appendChild(nameHeader);
-	 		target_element.appendChild(div1);
-
-	 	// 	<div class="bg-white mt-2 p-2 rounded-top">	
-			// 	<h3 >  device.nice_name  </h3>       
-			// 	<div class="row">
-			// 		<div class="col-sm-10">
-			// 			<p class="text-body"> located at  device.location </p>					
-			// 		</div>					
-			// 		<form method="POST" action=" url_for('device_action', deviceId=device.id, action='toggleOn') " class="col-sm-2" id="device_device.id_on_form">			
-			// 			<div class="form-check">				
-			// 				<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
-			// 					data-onstyle="success" data-offstyle="info"	onchange="DeviceOn('device_(device).id_on_form')" 
-			// 					 if device.is_on  checked  
-			// 					 if not device.enabled  disabled >
-			// 			</div>				                
-			// 		</form>
-			// 	</div>
-			// </div>
-	 	}
-
-	    function SubmitForm(onformid){
-
-	    	console.log("pressed with ",onformid);
-
-	    	document.getElementById(onformid).submit();
+        function submitAndUpdateStatus(url){
+	        console.log(url);
+	        $.post(url, {
+	        }).done(function(response) {            
+	            // start polling for device status
+	            if (!pollRunning){
+	                pollStatus();       
+	                polRunning = true;         
+	            }                        
+	            console.log("got response", response);
+	        }).fail(function() {
+	            console.log("failed");
+	        });
 	    }
 
-	    function DeviceOn2(onformid) {
-	    	destElem = document.getElementById(onformid);
-            $(destElem).html('<img src="{{ url_for('static', filename='loading.gif') }}">');
-            $.post('/translate', {
-                text: $(sourceElem).text(),
-                source_language: sourceLang,
-                dest_language: destLang
-            }).done(function(response) {
-            	device_staus = response['status']
-            	if( device_status['is_on'] ){            		
-                	$(destElem).bootstrapToggle('on')
-            	} else{
-            		$(destElem).bootstrapToggle('off')
-            	}
-            }).fail(function() {
-                $(destElem).text("{{ ('Error: Could not contact server.') }}");
-            });
-        }
+
+	    function pollStatus(){
+	        $.post("{{url_for('status')}}", function(response) {
+	            console.log('got response', response)
+	            //updateFPS(response.processing.fps);  // process results here
+	            setTimeout(pollStatus,3000);
+	        });
+	    }
+
+	    
 
     </script>
     
@@ -78,8 +39,6 @@
 	    	<h2 class="pt-3">Here are your devices </h2>
 	    </div>
 
-
-
 	    
 	    {% for interface in interfaces %}
 
@@ -87,14 +46,13 @@
 
 				<div class="row">					
 					<h3 class="col-sm-10 "> {{ interface.name }} </h3>    
-					<form method="POST" action="{{ url_for('device_action', interface_id=interface.id, device_id='', action='toggleOn')}}" class="col-sm-2" id="form_{{interface.id}}>			
 						<div class="form-check">				
 							<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
-								data-onstyle="success" data-offstyle="info"	onchange="SubmitForm('form_{{interface.id}}')" 							
+								data-onstyle="success" data-offstyle="info"	
+								onchange="submitAndUpdateStatus('{{url_for( 'device_action', interface_id=interface.dev_id|string, action='toggle_on') }}');" 							
 								{% if not interface.connected %} disabled {% endif %}
 								{% if interface.is_on %} checked  {% endif %} >
 						</div>				                
-					</form>   
 				</div>
 
 				{% for device in interface.devices %}
@@ -104,14 +62,13 @@
 							<p class="text-body"> located at {{ device.location}} </p>					
 						</div>	
 						{% if interface.devices |length > 1 %}				
-							<form method="POST" action="{{ url_for('device_action', interface_id=interface.id, device_id=device.id, action='toggleOn') }}" class="col-sm-2" id="form_{{device.id}}">	
 								<div class="form-check">				
 									<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
-										data-onstyle="success" data-offstyle="info"	onchange="SubmitForm('form_{{device.id}}')" 
+										data-onstyle="success" data-offstyle="info"
+										onchange="submitAndUpdateStatus('{{url_for('device_action', interface_id=interface.dev_id|string, device_id=device.dev_id|string, action='toggle_on' )}}');" 
 										{% if device.is_on %} checked  {% endif %} 
 										{% if not device.enabled %} disabled {% endif %}>
 								</div>				                
-							</form>
 						{% endif %}
 					</div>
 
@@ -127,17 +84,8 @@
 		</div>
 
 
-
-		<script type="text/javascript">
-			GetUpdatedDeviceInfo();
-			MakeDeviceDiv({nice_name:"Testilaite", location:"juna"}, document.querySelector('.device-container'));
-
-		</script>
     	
     </div>
-
-
-    <!-- <input type="checkbox" onclick="DeviceOn('aaas')">HERE -->
 
    
 

@@ -5,16 +5,15 @@ import time, os
 import threading
 
 from homeserver.device import PhilipsLamp, SamsungTV
+from homeserver import logger
 
 from phue import Bridge, PhueRegistrationException, PhueRequestTimeout
 import random
 
 
 
+
 ###################### classes used internally by the interfaces #######################
-
-
-
 
 
 
@@ -113,7 +112,17 @@ class DeviceInterface():
 		
 		#return NotImplementedError("Abstract base class")
 
+	def get_random_target(self):
+		"""
+			Return a random command target from the possible commands
+			(it does not matter which target command to use since we 
+			look up commands from a set) 
+		"""
 
+		if self.targets:
+			return next(iter(self.targets))
+		else:
+			return None
 
 
 	@classmethod
@@ -136,7 +145,7 @@ class DeviceInterface():
 				:file_path: 		path to the config file of the interface 
 		"""
 
-		logging.debug("loading devices from {}".format(file_path))
+		logger.info("loading devices from {}".format(file_path))
 		config = configparser.ConfigParser()
 		try:
 			config.read(file_path)
@@ -144,7 +153,7 @@ class DeviceInterface():
 			return None
 		
 
-		logging.debug("loaded device interface config {}".format(config))
+		logger.info("loaded device interface config for {}".format(config['DEFAULT']['DEVICE_CLASS']))
 
 		#import the device classes with importlib
 		DeviceInterfaceClass = getattr(importlib.import_module("homeserver.interface"), config['DEFAULT']['DEVICE_CLASS'])
@@ -239,6 +248,7 @@ class PhilipsLampInterface(DeviceInterface):
 
 		self.commands = [ DeviceCommand(self.targets, "päälle", self.toggle_on),
 							DeviceCommand(self.targets, "pois", self.toggle_off),
+							DeviceCommand(self.targets, "toggle", self.toggle_on_off),
 							DeviceCommand(self.targets, "alas", self.dim_lights),
 							DeviceCommand(self.targets, "ylös", self.brighten_lights)]
 
@@ -258,7 +268,7 @@ class PhilipsLampInterface(DeviceInterface):
 	def connect_to_hue_bridge(self, config):
 		"""	function to establish a connection to the hue bridge """
 
-		print("[ INFO ] connecting to hue bridge")
+		logger.info("Connecting to hue bridge")
 
 		bridge = None
 			
@@ -272,14 +282,18 @@ class PhilipsLampInterface(DeviceInterface):
 				#get the dridge	
 				bridge = Bridge(config['DEFAULT']['HUE_BRIDGE_IP'],
 								 config_file_path=config['DEFAULT']['HUE_CONFIG_FILE'])
+				# actually do an api request to check whether the connection was succesfull
+				bridge.get_light_objects()
+				logging.info("[ INFO ] connected to hue bridge")
 				self.connected = True				
 				break
 			except PhueRegistrationException:
-				print("push the button on the hue bridge, waiting 15 sec for {	}:th attempt out of {}".format(i+1, max_connect_tries))
+				print("push the button on the hue bridge, waiting 15 sec for {}:th attempt out of {}".format(i+1, max_connect_tries))
 				time.sleep(15)	
 			except PhueRequestTimeout:
 				#actually cannot timeout because initialising bridge does not check whether hue bridge is available
-				print("cannot connect to bridge")
+				print("[ ERROR  ] Cannot connect to HUE bridge")
+				bridge = None
 				break
 
 		return bridge
@@ -365,9 +379,14 @@ class PhilipsLampInterface(DeviceInterface):
 		light.brightness = 254
 		
 
-
 	def toggle_off(self, light, vargs=[]):
 		light.brightness = 0
+
+	def toggle_on_off(self, light, vargs=[]):
+		if light.brightness > 0:
+			light.brightness = 0
+		else:
+			light.brightness = 254
 
 
 

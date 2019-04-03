@@ -1,6 +1,7 @@
 
 #from homeserver.server_config import read_device_config
 from homeserver.interface import DeviceInterface
+from homeserver.voice_control.voice_controller import VoiceCommand
 
 import os
 import logging
@@ -61,42 +62,86 @@ class DeviceHandler():
 
 		return devices
 
-	def get_interface(self,device_id):
-		"""
-			First go through the interfaces and devices within and command the interface
-			which has the argument id.
-			Returns the interface where the argument id is in
-			Finally if no device with id found return None.
-		"""
-		for interface in self._interfaces:
-			if interface.dev_id == device_id:
-				return interface
-			for device in interface.devices:
-				if device.dev_id == device_id:
-					return interface
+	def get_status_json(self):
 
+		raise NotImplementedError("do this")
+			
+
+
+
+	def get_interface(self,interface_id):
+		"""
+			Returns the interface with the argument id
+			or None if no interface is found
+			params: 
+				interface_id: string			
+
+			return: 
+				DeviceInterface
+		"""
+
+		for interface in self._interfaces:
+
+			if interface.dev_id == int(interface_id):
+				print("returning interface")
+				return interface
+		
 		return None
 
-	def handle_action(self, device_id, action_name, args=[]):
+	def get_device(self, device_id, interface_id):
+
 		"""
-			@params: 	@device_id: string
+			Returns the device with the argument id
+			and interface_id 
+			or None if no such id combination is found
+
+			params: 
+				device_id: string
+				interface_id: string	
+
+			return: (DeviceInterface, Device)		
+		"""
+
+		for interface in self._interfaces:
+			if interface.dev_id == interface_id:					
+				for device in interface.devices:
+					if device.dev_id == device_id:
+						return interface, device
+
+		return None,None
+
+
+	def handle_action(self, interface_id, action_name, device_id=None):
+		"""
+			params: 	@device_id: string
 						@action_name: string, formatted as 
 										name_param1_param2
 						args is a list of strings
-			@return:	device if the handling was successful
+			return:		device if the handling was successful
 								else None
 		"""
-		interface = self.get_device(device_id)
 
-		if interface:
-			if action_name == "is_on":
-				if args[0] == "True":					
-					interface.toggle_on()
-				else:
-					interface.toggle_off()
-			
+		interface = None
+		device = None
 
-		return None
+		if device_id is not None:		
+			interface, device = self.get_device(device_id, interface_id)
+
+		else:
+			interface = self.get_interface(interface_id)
+
+		if interface is None:
+			return 
+
+		# get a target for the command
+		target = interface.get_random_target()
+
+		# create a command 
+		command = VoiceCommand.command_from_api(target, action_name)
+
+		# delegate the command to the interface
+		interface.command_subjects(command)
+
 
 	def handle_voice_command(self, vcommand):
 		"""
