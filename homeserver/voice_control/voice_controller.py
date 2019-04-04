@@ -7,7 +7,7 @@ from homeserver.voice_control.snowboydecoder import HotwordDetector, play_audio_
 from homeserver.interface import DeviceInterface
 
 
-from homeserver import app
+from homeserver import app, logger
 
 import logging
 import datetime
@@ -76,6 +76,7 @@ class VoiceCommand():
 			Class constructor from the interface
 
 		"""
+		logger.info("creating command from api with target {} and command {}".format(target, command_name))
 
 		return cls(target=target, arguments=[command_name])
 

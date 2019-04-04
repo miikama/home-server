@@ -1,6 +1,6 @@
 
 from flask import render_template, url_for, flash, redirect, jsonify
-from homeserver import app
+from homeserver import app, logger
 import requests
 
 
@@ -53,16 +53,14 @@ def device_action(interface_id, action, device_id=None):
 	if action is not None:
 		action = str(action) 	#  to string
 
-	print("interface id: ", interface_id)
-	print("device id: ", device_id)
+	app.logger.info("interface id: {}".format(interface_id))
+	app.logger.info("device id: {}".format(device_id))
+	app.logger.info("action: {}".format(action))
 
 
 	app.device_handler.handle_action(interface_id=interface_id, action_name=action,  device_id=device_id )
 
-	# return 
 	status_dict =app.device_handler.get_status_json()
-
-	print("returning status: ", status_dict)
 
 	return jsonify(status_dict)
 

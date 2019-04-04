@@ -150,8 +150,8 @@ class DeviceInterface():
 		try:
 			config.read(file_path)
 		except Exception as e:
+			logger.warn("loading devices from failed.")
 			return None
-		
 
 		logger.info("loaded device interface config for {}".format(config['DEFAULT']['DEVICE_CLASS']))
 
@@ -272,9 +272,6 @@ class PhilipsLampInterface(DeviceInterface):
 
 		bridge = None
 			
-		#if not self.bridge_available:
-	#		print("[ WARNING ] no hue bridge available")
-		#	return None
 
 		max_connect_tries = 3		
 		for i in range(max_connect_tries):
@@ -285,7 +282,8 @@ class PhilipsLampInterface(DeviceInterface):
 				# actually do an api request to check whether the connection was succesfull
 				bridge.get_light_objects()
 				logging.info("[ INFO ] connected to hue bridge")
-				self.connected = True				
+				self.connected = True	
+				self.is_on = True			
 				break
 			except PhueRegistrationException:
 				print("push the button on the hue bridge, waiting 15 sec for {}:th attempt out of {}".format(i+1, max_connect_tries))
@@ -297,11 +295,6 @@ class PhilipsLampInterface(DeviceInterface):
 				break
 
 		return bridge
-
-	@property
-	def bridge_available(self):
-		"""tries to make an api request to the bridge to see whether it is there in the expected ip"""
-		return False
 
 	def update_devices(self):
 		"""	

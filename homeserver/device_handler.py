@@ -2,6 +2,7 @@
 #from homeserver.server_config import read_device_config
 from homeserver.interface import DeviceInterface
 from homeserver.voice_control.voice_controller import VoiceCommand
+from homeserver import logger
 
 import os
 import logging
@@ -63,9 +64,67 @@ class DeviceHandler():
 		return devices
 
 	def get_status_json(self):
+		"""
+			return the current state of interfaces and devices.
+			Returns a dictionary of 
+			{
+				'data':{
+					'interfaces':{
+						'interface1':{
+							'name': string,
+							'dev_id': string,
+							'connected': bool
+							'is_on': bool,
+							'devices':{
+								'device1':{
+									'is_on':bool,
+									'enabled': bool,
+									'nice_name': string,
+									'full_name': string,
+									'location': string,
+									'dev_id': string
+								},
+								'device2': {} ...
+							}
+						},
+						'interface2': {} ...
+					}
+				}
+	
+			}
+		"""
 
-		raise NotImplementedError("do this")
-			
+
+		data = dict()
+		interfaces_dict = dict()
+
+		for interface in self._interfaces:
+
+			if_dict = dict()
+			if_dict['name'] = interface.name
+			if_dict['dev_id'] = interface.dev_id
+			if_dict['connected'] = interface.connected
+			if_dict['is_on'] = interface.is_on	
+
+			devices_dict = dict()
+			for device in interface.devices:
+
+				d_dict = dict()				
+				d_dict['is_on'] = device.is_on
+				d_dict['enabled'] = device.enabled
+				d_dict['nice_name'] = device.nice_name
+				d_dict['full_name'] = device.full_name
+				d_dict['location'] = device.location
+				d_dict['dev_id'] = device.dev_id
+
+				devices_dict[device.dev_id] = d_dict
+
+			if_dict['devices'] = devices_dict
+			interfaces_dict[interface.dev_id] = if_dict
+
+		data['interfaces'] = interfaces_dict
+
+		return data			
 
 
 
@@ -103,9 +162,9 @@ class DeviceHandler():
 		"""
 
 		for interface in self._interfaces:
-			if interface.dev_id == interface_id:					
+			if interface.dev_id == int(interface_id):					
 				for device in interface.devices:
-					if device.dev_id == device_id:
+					if device.dev_id == int(device_id):
 						return interface, device
 
 		return None,None
@@ -126,11 +185,11 @@ class DeviceHandler():
 
 		if device_id is not None:		
 			interface, device = self.get_device(device_id, interface_id)
-
 		else:
 			interface = self.get_interface(interface_id)
 
 		if interface is None:
+			logger.info("No interface with id {} found".format(interface_id))
 			return 
 
 		# get a target for the command
@@ -138,6 +197,8 @@ class DeviceHandler():
 
 		# create a command 
 		command = VoiceCommand.command_from_api(target, action_name)
+
+		logger.info("forwarding command: {}".format(command))
 
 		# delegate the command to the interface
 		interface.command_subjects(command)

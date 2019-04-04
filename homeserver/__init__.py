@@ -19,6 +19,8 @@ logger =setup_logging(os.path.join(app_path,config['LOG_FILE']))
 
 #now init the app with logging set up
 app = Flask(__name__)
+app.logger.setLevel(logging.DEBUG)
+
 
 
 #add the config parameters to the app config

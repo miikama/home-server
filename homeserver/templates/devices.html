@@ -25,7 +25,7 @@
 	        $.post("{{url_for('status')}}", function(response) {
 	            console.log('got response', response)
 	            //updateFPS(response.processing.fps);  // process results here
-	            setTimeout(pollStatus,3000);
+	            setTimeout(pollStatus,30000);
 	        });
 	    }
 
@@ -49,7 +49,7 @@
 						<div class="form-check">				
 							<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
 								data-onstyle="success" data-offstyle="info"	
-								onchange="submitAndUpdateStatus('{{url_for( 'device_action', interface_id=interface.dev_id|string, action='toggle_on') }}');" 							
+								onchange="submitAndUpdateStatus('{{url_for( 'device_action', interface_id=interface.dev_id|string, action='toggle') }}');" 							
 								{% if not interface.connected %} disabled {% endif %}
 								{% if interface.is_on %} checked  {% endif %} >
 						</div>				                
@@ -65,7 +65,7 @@
 								<div class="form-check">				
 									<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
 										data-onstyle="success" data-offstyle="info"
-										onchange="submitAndUpdateStatus('{{url_for('device_action', interface_id=interface.dev_id|string, device_id=device.dev_id|string, action='toggle_on' )}}');" 
+										onchange="submitAndUpdateStatus('{{url_for('device_action', interface_id=interface.dev_id|string, device_id=device.dev_id|string, action='toggle' )}}');" 
 										{% if device.is_on %} checked  {% endif %} 
 										{% if not device.enabled %} disabled {% endif %}>
 								</div>				                
