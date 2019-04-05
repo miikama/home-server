@@ -4,7 +4,7 @@ from homeserver.voice_control.google_speech import GoogleVoiceRecognition
 from homeserver.voice_control.snowboydecoder import HotwordDetector, play_audio_file
 
 #make the voicecontrol follow the device interface structure for control
-from homeserver.interface import DeviceInterface
+from homeserver.interface import DeviceInterface, DeviceCommand
 
 
 from homeserver import app, logger
@@ -116,9 +116,10 @@ class VoiceController(DeviceInterface):
 		self.name="Voice Control"
 		self.connected = True
 		self.is_on = True
+		self.running = False
 		self._devices = []
-		self.targets = set()
-		self.commands = []
+		self.targets = set('voice_control')
+		self.commands = [DeviceCommand(self.targets, "toggle", self.toggle_detection)]
 		self.dev_id = 200000 #TODO: read this from some config or smth
 		### #############  ###
 
@@ -133,32 +134,48 @@ class VoiceController(DeviceInterface):
 		self.silent_count_threshold = 2
 		self.recording_timeout = 10
 
+		# param to the snowboy detector
+		self.sensitivity = 0.5
 
-		self.detector = HotwordDetector(app.config['SNOWBOY_MODEL'], sensitivity=0.5)
-		print('Listening for voice keyword...')
+		self.model = app.config['SNOWBOY_MODEL']
 
-		#set the path of the audio file saved
-		self.detector.set_recording_filepath(app.config['AUDIO_PATH_AFTER_DETECTION'])
+		self.recording_path = app.config['AUDIO_PATH_AFTER_DETECTION']
 
-		#the voicethread
-		self.vthread = VoiceThread(target=self.start_detector, parent=self)
+		# the keyword detector is initialized in the start detector
+		self.detector = None
+
+		self.vthread = None
 
 		self.voice_callbacks = {}
 
-
 		if start:
-			self.start()
+			self.start_detector()		
 
+	def initialize_detector(self):
 
+		logger.info("model path: {}".format(self.model))
 
-	def start(self):
-		"""	starts the voicecontrol thread	"""		
+		self.detector = HotwordDetector(self.model, sensitivity=self.sensitivity)		
 
-		self.vthread.start()
+		#set the path of the audio file saved
+		self.detector.set_recording_filepath(self.recording_path)	
+
+		#the voicethread
+		self.vthread = VoiceThread(target=self.start_detection, parent=self)		
 
 
 	def start_detector(self):
+
+		self.initialize_detector()
+
+		self.vthread.start()
 		
+		self.running = True
+
+		logger.info('Keyword detector started')
+
+	def start_detection(self):
+
 		# main loop
 		self.detector.start(detected_callback=self.detection_callback,
 		               interrupt_check=self.interrupt_callback,
@@ -196,6 +213,30 @@ class VoiceController(DeviceInterface):
 
 			app.device_handler.handle_voice_command(command)
 
+
+	def command_subjects(self,vcommand, *args):
+		"""Base methods, common error checking for all base classes implemented here"""
+
+		super().command_subjects(vcommand)
+		
+		#parse command	
+		action = vcommand.arguments[0]		
+		func = None
+
+		for command in self.commands:
+			if action == command.action:
+				func = command.action_func
+				break
+
+		if func is not None:
+			func()
+
+	def toggle_detection(self):
+
+		if self.running:
+			self.stop_detection()
+		else:
+			self.start_detector()
 
 
 

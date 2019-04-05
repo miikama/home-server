@@ -141,8 +141,7 @@ class DeviceHandler():
 
 		for interface in self._interfaces:
 
-			if interface.dev_id == int(interface_id):
-				print("returning interface")
+			if interface.dev_id == int(interface_id):				
 				return interface
 		
 		return None
@@ -183,6 +182,8 @@ class DeviceHandler():
 		interface = None
 		device = None
 
+		logger.debug("Handling action with device id: {}".format(device_id))
+
 		if device_id is not None:		
 			interface, device = self.get_device(device_id, interface_id)
 		else:
@@ -201,7 +202,7 @@ class DeviceHandler():
 		logger.info("forwarding command: {}".format(command))
 
 		# delegate the command to the interface
-		interface.command_subjects(command)
+		interface.command_subjects(command, device_id)
 
 
 	def handle_voice_command(self, vcommand):

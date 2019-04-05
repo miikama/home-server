@@ -104,13 +104,12 @@ class DeviceInterface():
 		print("update_devices of the base class called")
 
 
-	def command_subjects(self,vcommand):
+	def command_subjects(self,vcommand, *args, **kwargs):
 		"""Base methods, common error checking for all base classes implemented here"""
 
 		if vcommand.target not in self.targets:
 			raise ValueError("The voicecommand target should be found in the Devicecommand targets")
 		
-		#return NotImplementedError("Abstract base class")
 
 	def get_random_target(self):
 		"""
@@ -325,7 +324,7 @@ class PhilipsLampInterface(DeviceInterface):
 
 
 
-	def command_subjects(self, vcommand, light_id=None):
+	def command_subjects(self, vcommand, dev_id=None):
 		"""a middle man to before sending command to a light
 			Receives vargs, which is a list of extra voice command arguments
 		"""
@@ -351,14 +350,15 @@ class PhilipsLampInterface(DeviceInterface):
 
 
 
-		lights = self.bridge.get_light_objects()
-		print("got lights ", lights)
+		#lights = self.bridge.get_light_objects()
+		logger.info("got lights with ids: ".format([(light.bridge_light_id, light.dev_id) for light in self._devices]))
 		lights_reachable = 0
 
-		for light in lights:
+		for device in self._devices:
+			light = device.phue_light
 			if light.reachable:
 				#if light id is given
-				if light_id and not (light_id == ligt.light_id):
+				if dev_id and not (dev_id == device.dev_id):
 					continue
 
 				lights_reachable += 1

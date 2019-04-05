@@ -46,10 +46,10 @@ def device_action(interface_id, action, device_id=None):
 	"""
 		Main interface point
 	"""
-	interface_id = str(interface_id)
+	interface_id = int(interface_id)
 
 	if device_id is not None:
-		device_id = str(device_id) # to string
+		device_id = int(device_id) # to string
 	if action is not None:
 		action = str(action) 	#  to string
 

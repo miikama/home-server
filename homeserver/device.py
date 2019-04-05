@@ -41,7 +41,7 @@ class Device(object):
 
 
 
-class PhilipsLamp(Light):
+class PhilipsLamp:
 
 	def __init__(self, light, light_id):
 
@@ -54,6 +54,9 @@ class PhilipsLamp(Light):
 
 		self.is_on = light.on
 		self.enabled = light.reachable
+		self.phue_light = light
+
+
 
 
 	def __repr__(self):
