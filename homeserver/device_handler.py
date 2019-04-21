@@ -1,7 +1,7 @@
 
 #from homeserver.server_config import read_device_config
 from homeserver.interface import DeviceInterface
-from homeserver.voice_control.voice_controller import VoiceCommand
+from homeserver.command_handler import DeviceCommand
 from homeserver import logger
 
 import os
@@ -197,9 +197,9 @@ class DeviceHandler():
 		target = interface.get_random_target()
 
 		# create a command 
-		command = VoiceCommand.command_from_api(target, action_name)
+		command = DeviceCommand.command_from_api(target, action_name)
 
-		logger.info("forwarding command: {}".format(command))
+		logger.info("forwarding command: {} for interface id {} and device id {}".format(command, interface_id, device_id))
 
 		# delegate the command to the interface
 		interface.command_subjects(command, device_id)

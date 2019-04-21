@@ -36,8 +36,8 @@ from homeserver import server
 
 #start voice control
 from homeserver.voice_control.voice_controller import VoiceController
-voice_controller = VoiceController(start=True)
-app.device_handler.add_interface(voice_controller)
+app.voice_controller = VoiceController(start=True)
+app.device_handler.add_interface(app.voice_controller)
 
 
 

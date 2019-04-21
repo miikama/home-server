@@ -67,4 +67,3 @@ def device_action(interface_id, action, device_id=None):
 @app.route("/status", methods=["POST"])
 def status():
 	return jsonify(app.device_handler.get_status_json())
-

@@ -17,11 +17,15 @@ import random
 
 
 
-class DeviceCommand():
+class DeviceTarget():
 	"""wrapper class for internal use for the devices"""
 
 	def __init__(self,targets, action, action_func):
-		"""has target device, arguments,and a function to be called """
+		"""
+			:params: targets: a Set of strings
+		 			 action: string corresponding to the action_func
+		 			 action_func: a function to be called
+		"""
 		self.targets = targets
 		self.action = action
 		self.action_func = action_func
@@ -89,7 +93,7 @@ class DeviceInterface():
 
 		self._devices = []	# list of [Device]
 		
-		self.commands = [] # List of [DeviceCommand(), ...]
+		self.commands = [] # List of [DeviceTarget(), ...]
 		
 		self.targets = set() #set of strings this device can be commanded with
 
@@ -108,7 +112,7 @@ class DeviceInterface():
 		"""Base methods, common error checking for all base classes implemented here"""
 
 		if vcommand.target not in self.targets:
-			raise ValueError("The voicecommand target should be found in the Devicecommand targets")
+			raise ValueError("The DeviceTarget target should be found in the DeviceTarget targets")
 		
 
 	def get_random_target(self):
@@ -245,11 +249,11 @@ class PhilipsLampInterface(DeviceInterface):
 
 		self.targets = set(["valot", "philips_light"])
 
-		self.commands = [ DeviceCommand(self.targets, "päälle", self.toggle_on),
-							DeviceCommand(self.targets, "pois", self.toggle_off),
-							DeviceCommand(self.targets, "toggle", self.toggle_on_off),
-							DeviceCommand(self.targets, "alas", self.dim_lights),
-							DeviceCommand(self.targets, "ylös", self.brighten_lights)]
+		self.commands = [ DeviceTarget(self.targets, "päälle", self.toggle_on),
+							DeviceTarget(self.targets, "pois", self.toggle_off),
+							DeviceTarget(self.targets, "toggle", self.toggle_on_off),
+							DeviceTarget(self.targets, "alas", self.dim_lights),
+							DeviceTarget(self.targets, "ylös", self.brighten_lights)]
 
 		#dont connect to the bridge in the initialization because can timeout, 
 		#this will be done first time there is a call to the lights
@@ -304,7 +308,7 @@ class PhilipsLampInterface(DeviceInterface):
 		if not self.bridge:
 			self.bridge = self.connect_to_hue_bridge(self.config)
 		#no connections established
-		if not self.bridge:
+		if self.bridge is None:
 			logging.info("NO CONNECTION TO HUE BRIDGE")
 			self.connected = False
 			self.is_on = False
@@ -325,14 +329,15 @@ class PhilipsLampInterface(DeviceInterface):
 
 
 	def command_subjects(self, vcommand, dev_id=None):
-		"""a middle man to before sending command to a light
-			Receives vargs, which is a list of extra voice command arguments
+		"""
+			A middle man to before sending command to a light.
+			If the dev_id is not given, send command to all lights.			
 		"""
 		super().command_subjects(vcommand) #error handling
 
 		#if we are not connected we cannot command device
 		if not self.connected:
-			print("not connected")
+			logger.info("Cannot command lights, not connected.")
 			return False
 		
 		#parse command	
@@ -344,8 +349,8 @@ class PhilipsLampInterface(DeviceInterface):
 				func = command.action_func
 				break
 
-		if not func:
-			print("no command action function")
+		if func is None:
+			logger.debug("no command action function")
 			return False
 
 
@@ -354,15 +359,21 @@ class PhilipsLampInterface(DeviceInterface):
 		logger.info("got lights with ids: ".format([(light.bridge_light_id, light.dev_id) for light in self._devices]))
 		lights_reachable = 0
 
+		print("devices: ", self._devices)
+
 		for device in self._devices:
 			light = device.phue_light
 			if light.reachable:
-				#if light id is given
-				if dev_id and not (dev_id == device.dev_id):
+				# if light id is given only control the light with matching id
+				if dev_id is not None and not (dev_id == device.dev_id):
+					print("continuing")
 					continue
 
 				lights_reachable += 1
+				print("calling func with light id {}")
 				func(light, vargs=vcommand.arguments[1:])
+			else:
+				print("light not reachable")
 
 		return lights_reachable > 0	
 			
@@ -471,8 +482,8 @@ class SamsungTvInterface(DeviceInterface):
 		self.targets = set(["tv", "samsung_tv"])
 
 		#2d array of [["valot", "päälle", func ] ]
-		self.commands = [ DeviceCommand(self.targets, "päälle", self.toggle_on),
-						DeviceCommand(self.targets, "pois", self.toggle_off)	 ]	
+		self.commands = [ DeviceTarget(self.targets, "päälle", self.toggle_on),
+						DeviceTarget(self.targets, "pois", self.toggle_off)	 ]	
 
 	def command_subjects(self,vcommand):
 		# error handling

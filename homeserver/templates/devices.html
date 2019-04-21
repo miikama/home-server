@@ -4,6 +4,7 @@
 	 <script type="text/javascript">
 
         let pollRunning = false;
+        let pollTimeout = 30000;
 
         function submitAndUpdateStatus(url){
 	        console.log(url);
@@ -24,13 +25,18 @@
 	    function pollStatus(){
 	        $.post("{{url_for('status')}}", function(response) {
 	            console.log('got response', response)
-	            //updateFPS(response.processing.fps);  // process results here
-	            setTimeout(pollStatus,30000);
+	            updateInterfaceStatus(response);	            
+	            setTimeout(pollStatus,pollTimeout);
 	        });
 	    }
 
-	    
+	    function updateInterfaceStatus(response) {
 
+	    	console.log(Object.keys(response.interfaces));
+
+	    }	    
+
+	    pollStatus();
     </script>
     
 
@@ -45,10 +51,10 @@
 			<div class="bg-white mt-2 p-2 rounded-top">	
 
 				<div class="row">					
-					<h3 class="col-sm-10 "> {{ interface.name }} </h3>    
+					<h3 class="col-sm-10 "> {{ interface.name }} {% if not interface.connected %} (offline) {% endif %}</h3>    
 						<div class="form-check">				
-							<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
-								data-onstyle="success" data-offstyle="info"	
+							<input  class="my-on-toggle toggle_interface{{interface.dev_id|string}}" data-toggle="toggle" type="checkbox" 
+								data-onstyle="success" data-offstyle="info"
 								onchange="submitAndUpdateStatus('{{url_for( 'device_action', interface_id=interface.dev_id|string, action='toggle') }}');" 							
 								{% if not interface.connected %} disabled {% endif %}
 								{% if interface.is_on %} checked  {% endif %} >
@@ -57,13 +63,14 @@
 
 				{% for device in interface.devices %}
 
+					{% if interface.connected %}
 					<div class="row p-3">
 						<div class="col-sm-4">
 							<p class="text-body"> located at {{ device.location}} </p>					
 						</div>	
 						{% if interface.devices |length > 1 %}				
 								<div class="form-check">				
-									<input  class="my-on-toggle" data-toggle="toggle" type="checkbox" 
+									<input  class="my-on-toggle toggle_device{{device.dev_id|string}}" data-toggle="toggle" type="checkbox" 
 										data-onstyle="success" data-offstyle="info"
 										onchange="submitAndUpdateStatus('{{url_for('device_action', interface_id=interface.dev_id|string, device_id=device.dev_id|string, action='toggle' )}}');" 
 										{% if device.is_on %} checked  {% endif %} 
@@ -71,6 +78,7 @@
 								</div>				                
 						{% endif %}
 					</div>
+					{% endif %}
 
 				{% endfor %}
 			</div>    
@@ -87,7 +95,7 @@
     	
     </div>
 
-   
+    
 
 {% endblock %}
 
