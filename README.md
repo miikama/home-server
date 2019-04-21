@@ -60,6 +60,21 @@ cp -v -R Doc/* /usr/share/doc/swig-3.0.10
 
 Update the path to google API credentials and your own Snowboy model in a file server.ini. Use server.example.ini as a basis.
 
+## Running a production server on pi
+
+The actual server is run on gunicorn, which is easily installed with
+
+```shell
+pip install gunicorn
+```
+
+To provide the local net devices access to the server, an application nginx is used. It can be installed with 
+
+```shell
+sudo apt install nginx
+```
+
+Check the shell scripts 'install_on_pi.sh' and 'run_production.sh'.
 
 
 ## setup
