@@ -1,5 +1,14 @@
 #!/bin/bash
 
+
+
+# get the application directory root path
+dir=$(pwd)
+app_root="$(dirname "$dir")"
+
+echo "Using app root directory $app_root"
+
+
 ################### firewall ########################
 
 # set up firewall 
@@ -26,6 +35,9 @@ sudo apt install nginx
 sudo rm /etc/nginx/sites-enabled/default 
 sudo rm /etc/nginx/sites-available/default 
 
+# set the correct app paths to template
+sed "s:/path/to/server:${app_root}:g" nginx.conf.template > nginx.conf
+
 # replace with our own configuration
 sudo cp nginx.conf /etc/nginx/sites-available/homeserver
 sudo ln -s /etc/nginx/sites-available/homeserver /etc/nginx/sites-enabled/homeserver
@@ -37,6 +49,9 @@ sudo systemctl restart nginx
 ################# supervisor #################################
 
 sudo apt install supervisor
+
+# set the correct app paths to template
+sed "s:/path/to/server:${app_root}:g" supervisor.conf.template > supervisor.conf
 
 # copy the template configuration
 sudo cp supervisor.conf /etc/supervisor/conf.d/homeserver.conf

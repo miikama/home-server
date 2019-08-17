@@ -1,6 +1,6 @@
 [program:homeserver]
-directory=/home/miika/ohjelmointi/home-server
-command=/home/miika/ohjelmointi/home-server/henv/bin/gunicorn -w 1 homeserver:app
+directory=/path/to/server
+command=/path/to/server/henv/bin/gunicorn -w 1 homeserver:app
 user=miika
 autostart=true
 autorestart=true
