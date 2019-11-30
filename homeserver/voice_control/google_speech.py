@@ -26,7 +26,7 @@ from google.cloud import speech
 from google.cloud.speech import enums, types
 
 # class for recording 
-from homeserver.voice_control.home_microphone import record_audio
+from homeserver.voice_control.voice_service import record_audio
 
 
 class GoogleVoiceRecognition():

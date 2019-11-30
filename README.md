@@ -9,16 +9,10 @@ Dependencies for pyaudio
 ```shell
 sudo apt-get install portaudio19-dev python-all-dev
 ```
-Get virtualenvironment
+Create and activate python virtualenvironment (For python < 3.5? one has to install virtualenvironment separately)
 
 ```shell
-sudo pip install --upgrade virtualenv
-```
-
-sudo install virtualenv for it to go to /usr/local/bin. Can be installed for just the current user as well. Activate environment
-
-```shell
-virtualenv --python python3 henv
+python3 -m venv henv
 source henv/bin/activate
 ```
 

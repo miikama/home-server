@@ -2,10 +2,12 @@
 # NO .ini to git
 homeserver/server.ini
 homeserver/server.log
+/*.log
 
 # ignore python temp files
 *.pyc
 __pycache__
+*.egg*
 
 # compiled voice control
 *.so
@@ -21,3 +23,9 @@ henv
 # random local folders
 setitysta
 installation_temp
+
+# snowboy installation repo
+installation/snowboy
+
+# vscode
+*codews*

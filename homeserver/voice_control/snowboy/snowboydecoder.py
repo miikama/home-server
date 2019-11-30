@@ -2,7 +2,7 @@
 
 import collections
 import pyaudio
-from homeserver.voice_control.snowboydetect import SnowboyDetect
+from . import snowboydetect
 import time
 import wave
 import os
@@ -10,7 +10,9 @@ import logging
 from ctypes import *
 from contextlib import contextmanager
 
-
+logging.basicConfig()
+logger = logging.getLogger("snowboy")
+logger.setLevel(logging.INFO)
 TOP_DIR = os.path.dirname(os.path.abspath(__file__))
 
 RESOURCE_FILE = os.path.join(TOP_DIR, "resources/common.res")
@@ -76,8 +78,6 @@ def play_audio_file(fname=DETECT_DING):
 
 
 class HotwordDetector(object):
-
-    print("STARTING HOTWORDS ")
     """
     Snowboy decoder to detect whether a keyword specified by `decoder_model`
     exists in a microphone input stream.
@@ -106,7 +106,7 @@ class HotwordDetector(object):
             sensitivity = [sensitivity]
         model_str = ",".join(decoder_model)
 
-        self.detector = SnowboyDetect(
+        self.detector = snowboydetect.SnowboyDetect(
             resource_filename=resource.encode(), model_str=model_str.encode())
         self.detector.SetAudioGain(audio_gain)
         self.detector.ApplyFrontend(apply_frontend)
@@ -124,15 +124,6 @@ class HotwordDetector(object):
 
         self.ring_buffer = RingBuffer(
             self.detector.NumChannels() * self.detector.SampleRate() * 5)
-
-        self.audio_path = ''
-
-    def set_recording_filepath(self, path):
-        """
-            sets the path where of the audio file that is recorded after hotword detection
-        """
-        self.audio_path = path
-
 
     def start(self, detected_callback=play_audio_file,
               interrupt_check=lambda: False,
@@ -185,7 +176,7 @@ class HotwordDetector(object):
             stream_callback=audio_callback)
 
         if interrupt_check():
-            logging.debug("detect voice return")
+            logger.debug("detect voice return")
             return
 
         tc = type(detected_callback)
@@ -198,12 +189,12 @@ class HotwordDetector(object):
             "Error: hotwords in your models (%d) do not match the number of " \
             "callbacks (%d)" % (self.num_hotwords, len(detected_callback))
 
-        logging.debug("detecting...")
+        logger.debug("detecting...")
 
         state = "PASSIVE"
         while self._running is True:
             if interrupt_check():
-                logging.debug("detect voice break")
+                logger.debug("detect voice break")
                 break
             data = self.ring_buffer.get()
             if len(data) == 0:
@@ -212,7 +203,7 @@ class HotwordDetector(object):
 
             status = self.detector.RunDetection(data)
             if status == -1:
-                logging.warning("Error initializing streams or reading audio data")
+                logger.warning("Error initializing streams or reading audio data")
 
             #small state machine to handle recording of phrase after keyword
             if state == "PASSIVE":
@@ -224,7 +215,7 @@ class HotwordDetector(object):
                     message = "Keyword " + str(status) + " detected at time: "
                     message += time.strftime("%Y-%m-%d %H:%M:%S",
                                          time.localtime(time.time()))
-                    logging.info(message)
+                    logger.info(message)
                     callback = detected_callback[status-1]
                     if callback is not None:
                         callback()
@@ -254,13 +245,13 @@ class HotwordDetector(object):
                 recordingCount = recordingCount + 1
                 self.recordedData.append(data)
 
-        logging.debug("finished.")
+        logger.debug("finished.")
 
     def saveMessage(self):
         """
         Save the message stored in self.recordedData to a timestamped file.
         """
-        filename = os.path.join(self.audio_path, 'command.wav')
+        filename = 'output' + str(int(time.time())) + '.wav'
         data = b''.join(self.recordedData)
 
         #use wave to save data
@@ -272,7 +263,7 @@ class HotwordDetector(object):
         wf.setframerate(self.detector.SampleRate())
         wf.writeframes(data)
         wf.close()
-        logging.debug("finished saving: " + filename)
+        logger.debug("finished saving: " + filename)
         return filename
 
     def terminate(self):

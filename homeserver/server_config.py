@@ -3,6 +3,7 @@
 import configparser
 import importlib
 import sys
+import os
 from datetime import datetime
 
 
@@ -15,11 +16,21 @@ def load_config(file_path):
     reads the config file and sets the found parameters to the app config
     """
     print("loading application configuration from path: {}".format(file_path))
+
+    # default config does not exist 
+    if not os.path.isfile(file_path):
+        print("No server configuration file found at {}".format(file_path))
+        print("Copy the homeserver/server_example.ini -> /homeserver/server.ini and update the fields")    
+        return {}
+    
     config = configparser.ConfigParser()
     try:
         config.read(file_path)
-    except Exception as e:
-        return None
+
+    except:
+        print("reading configuration file {} failed.".format(file_path))
+        return {}
+        
 
     return config['DEFAULT']
 
@@ -68,7 +79,7 @@ class MyFilter(object):
 
 
 
-def setup_logging(log_file):
+def setup_logging(config, log_level):
     """
         Given the initial server log file path,
         set up the server root logger.
@@ -77,6 +88,10 @@ def setup_logging(log_file):
         messages to console
     """
 
+    log_file = config.get('LOG_FILE') 
+    if not log_file: 
+        log_file = "server.log"
+    print("logging to file: ", log_file)
     # get the python logging root logger
     rootLogger = logging.getLogger()
 
@@ -99,7 +114,7 @@ def setup_logging(log_file):
 
     rootLogger.addHandler(file_handler)
     rootLogger.addHandler(console_handler)
-    rootLogger.setLevel(logging.INFO)
+    rootLogger.setLevel(log_level)
 
     rootLogger.info('Started logging')
 
