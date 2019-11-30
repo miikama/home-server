@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.0.1",
     author="Example Author",
     author_email="author@example.com",
-    description="A small example package",
+    description="A Python package for connecting to your home's smart devices.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/miikama/home-server",
