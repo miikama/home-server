@@ -6,6 +6,8 @@ import logging
 from flask import Flask
 
 
+HOME_SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 #the absolute path of this script
 app_path =  os.path.dirname(os.path.realpath(__file__))

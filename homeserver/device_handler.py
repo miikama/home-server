@@ -30,12 +30,13 @@ class DeviceHandler():
 
 		#folder where all the device configs live
 		self.device_folder = folder
-
+		
+		self.active_device = None
+	
+	def init(self):
 		interfaces = self.read_devices()
 		#register the interfaces
 		self.register_interfaces(interfaces)
-
-		self.active_device = None
 
 	@property
 	def interfaces(self):

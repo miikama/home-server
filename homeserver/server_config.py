@@ -7,33 +7,67 @@ import os
 from datetime import datetime
 
 
+from homeserver import HOME_SERVER_DIR
+
 import logging
 
+"""
+    During the first run of the homeserver a configuration file is generated.
+    
+    Some fields are left as 'empty' and are initialized during the first run
+    of different subprograms.
+"""
+
+class Config:
+    
+    SNOWBOY_API_KEY=""
+    FLASK_SECRET_KEY=""
+
+def get_config_file_path():
+    return os.path.join(HOME_SERVER_DIR, "server.ini")      
+
+def write_config(config: Config, config_out_path: str):
+
+    # log is stored under homeserver     
+    init_file = config_out_path
+    
+    parser = get_config_parser(config)
+    
+    with open(init_file, 'w') as outfile:
+        parser.write(outfile)
+
+def get_config_parser(config: Config):
+
+    parser = configparser.ConfigParser()
+
+    parser['DEFAULT'] = {
+        'SNOWBOY_API_KEY': config.SNOWBOY_API_KEY,
+        'FLASK_SECRET_KEY': config.FLASK_SECRET_KEY,
+    }
+
+    return parser
 
 
-def load_config(file_path):
+def load_config(file_path=""):
     """
     reads the config file and sets the found parameters to the app config
     """
-    print("loading application configuration from path: {}".format(file_path))
-
+    if not file_path:
+        file_path = get_config_file_path()
+    
     # default config does not exist 
     if not os.path.isfile(file_path):
-        print("No server configuration file found at {}".format(file_path))
-        print("Copy the homeserver/server_example.ini -> /homeserver/server.ini and update the fields")    
-        return {}
-    
-    config = configparser.ConfigParser()
+        # write default config        
+        write_config(Config(), file_path)        
+        
+    parser = configparser.ConfigParser()
     try:
-        config.read(file_path)
-
+        parser.read(file_path)
     except:
         print("reading configuration file {} failed.".format(file_path))
-        return {}
-        
+        return {}        
 
-    return config['DEFAULT']
-
+    return parser['DEFAULT']
 	
 
 def read_device_config(file_path):
@@ -77,6 +111,9 @@ class MyFilter(object):
         return logRecord.levelno <= self.__level
 
 
+def update_config():
+
+    pass
 
 
 def setup_logging(config, log_level):
@@ -90,8 +127,7 @@ def setup_logging(config, log_level):
 
     log_file = config.get('LOG_FILE') 
     if not log_file: 
-        log_file = "server.log"
-    print("logging to file: ", log_file)
+        log_file = "server.log"    
     # get the python logging root logger
     rootLogger = logging.getLogger()
 
@@ -115,8 +151,6 @@ def setup_logging(config, log_level):
     rootLogger.addHandler(file_handler)
     rootLogger.addHandler(console_handler)
     rootLogger.setLevel(log_level)
-
-    rootLogger.info('Started logging')
 
     # return root logger (this is a bit unnecessary though)
     return rootLogger
