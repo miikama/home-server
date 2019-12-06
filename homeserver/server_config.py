@@ -18,32 +18,66 @@ import logging
     of different subprograms.
 """
 
-class Config:
-    
-    SNOWBOY_API_KEY=""
-    FLASK_SECRET_KEY=""
 
 def get_config_file_path():
     return os.path.join(HOME_SERVER_DIR, "server.ini")      
 
-def write_config(config: Config, config_out_path: str):
-
-    # log is stored under homeserver     
-    init_file = config_out_path
+class Config:
     
-    parser = get_config_parser(config)
-    
-    with open(init_file, 'w') as outfile:
-        parser.write(outfile)
+    def __init__(self, config_path):
+        """
+            @params: config_path: the path where the configuration will be saved
+        """
 
-def get_config_parser(config: Config):
+        self.outfile = config_path
+        
+        self._values = {
+            'DEFAULT': {
+                "SNOWBOY_API_KEY":"",
+                "FLASK_SECRET_KEY":""
+            }
+        }
 
+    def __getitem__(self, key):
+        return self._values[key]
+
+    def get(self, value):
+        return self._values.get(value)
+
+    def add_configuration_parameters(self, namespace, new_parameters):
+        """
+            @params: namespace: section for .ini file, e.g. "DEFAULT" 
+                     new_parameters: dict of str -> any
+        """
+        
+        new_dict = {namespace: new_parameters}
+
+        # update the values 
+        self._values.update(new_dict)
+        if self.outfile:
+            self.write_config(self.outfile)
+        else:
+            raise RuntimeError("should have outfile path aleady")
+            
+    def write_config(self, config_out_path: str):
+
+        # log is stored under homeserver     
+        init_file = config_out_path
+        
+        parser = get_config_parser(self._values)
+        
+        with open(init_file, 'w') as outfile:
+            parser.write(outfile)
+
+        self.outfile = init_file
+
+def get_config_parser(config):
+    # Create a ConfigParser object  based
+    # on the argument configuration.
     parser = configparser.ConfigParser()
-
-    parser['DEFAULT'] = {
-        'SNOWBOY_API_KEY': config.SNOWBOY_API_KEY,
-        'FLASK_SECRET_KEY': config.FLASK_SECRET_KEY,
-    }
+    
+    for key in config:
+        parser[key] = config[key]
 
     return parser
 
@@ -52,22 +86,31 @@ def load_config(file_path=""):
     """
     reads the config file and sets the found parameters to the app config
     """
+
+    
+
     if not file_path:
         file_path = get_config_file_path()
+
+    # initialize config
+    config = Config(file_path)
     
-    # default config does not exist 
+    # Config is not written to disk yet
+    # This is the first run of the server
     if not os.path.isfile(file_path):
         # write default config        
-        write_config(Config(), file_path)        
+        config.write_config(file_path)        
+        return config
         
+    # Configuration file exists on disk already 
+    # (we just wrote it if it did not, duh)
     parser = configparser.ConfigParser()
-    try:
-        parser.read(file_path)
-    except:
-        print("reading configuration file {} failed.".format(file_path))
-        return {}        
-
-    return parser['DEFAULT']
+    
+    parser.read(file_path)
+    for key in parser._sections:        
+        config.add_configuration_parameters(key, parser._sections[key]) 
+    
+    return config
 	
 
 def read_device_config(file_path):

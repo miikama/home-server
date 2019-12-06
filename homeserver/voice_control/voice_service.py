@@ -3,123 +3,188 @@ import argparse
 import os
 import pyaudio
 import wave
-
-
-from homeserver import logger
-from homeserver.voice_control.snowboy.snowboydecoder import HotwordDetector
-
+import multiprocessing
 import time
-import wave
-import os
-import logging
+
+from homeserver import config
+from homeserver.voice_control import logger
+from homeserver.voice_control.snowboy.snowboydecoder import HotwordDetector
+from homeserver.voice_control.model_service import available_models
 
 
+class VoiceService:
 
-def record_audio(record_len, filename):
-    """
-        records an audio clip from the default input device
-        @params: length: the length of recorded audio [seconds]
-                filename: the ouput filename 
-    """
+    # function name -> function
+    _callbacks = {}    
 
-    try:
+    # keep track of the initialzed service
+    # there should only be one of these 
+    _running_instance = None
 
-        CHUNK = 1024
-        FORMAT = pyaudio.paInt16
-        CHANNELS = 1
-        RATE = 16000
-        RECORD_SECONDS = record_len
-        WAVE_OUTPUT_FILENAME = filename
+    name = "voiceservice"
 
-        p = pyaudio.PyAudio()
+    def __init__(self):
 
-        stream = p.open(format=FORMAT,
-                        channels=CHANNELS,
-                        rate=RATE,
-                        input=True,
-                        frames_per_buffer=CHUNK)
+        logger.info("Initializing {}".format(self.name))
+        if not VoiceService._running_instance is None:
+            raise RuntimeError("Only single {} instance at a time supported".format(self.__class__.__name__))
 
-        logger.info("Recording {}.".format(WAVE_OUTPUT_FILENAME))
+        # set this instance to the current running
+        VoiceService._running_instance = self
 
-        frames = []
+        # output event queue
+        self._event_queue = None
 
-        for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-            data = stream.read(CHUNK)
-            frames.append(data)
+    @staticmethod
+    def get_running():
+        return VoiceService._running_instance
 
-        logger.info("Done recording.")
+    @staticmethod
+    def get_current_queue():
+        if VoiceService.get_running() is None:
+            return None
 
-        stream.stop_stream()
-        stream.close()
-        p.terminate()
+        return VoiceService.get_running()._event_queue
 
-        with wave.open(WAVE_OUTPUT_FILENAME, 'wb') as wf:
-            wf.setnchannels(CHANNELS)
-            wf.setsampwidth(p.get_sample_size(FORMAT))
-            wf.setframerate(RATE)
-            wf.writeframes(b''.join(frames))
-		
+    @staticmethod
+    def add_callback(input_name, input_function):
+        VoiceService._callbacks[input_name] = input_function
 
-        return WAVE_OUTPUT_FILENAME
-
-    except:
-        pass			
-
-    return None
-
-def play_back_audio(audio_file):
-
-    if not os.path.exists(audio_file):
-        logger.error("Audio file {} does not exist, cannot play it".format(audio_file))
-        return 
-
-    name, file_extension = os.path.splitext(audio_file)
-    if not file_extension == '.wav':
-        raise RuntimeError("Playing other that wav files is not supported")
-    
-    # open file
-    with wave.open(audio_file, 'rb') as wf:
+    @staticmethod
+    def register_callback(func):
+        """
+            this can be added to functions that can act as voice triggered
+        """         
         
-        # init pyaudio
-        audio = pyaudio.PyAudio()
-        
-        # create audio stream    
-        stream = audio.open(format=audio.get_format_from_width(wf.getsampwidth()),
-                            channels=wf.getnchannels(),
-                            rate=wf.getframerate(),
-                            input=False,
-                            output=True)
+        VoiceService.add_callback(func.__name__, func)                    
 
-        CHUNK = 1024
+        return func
 
-        #data = wf.readframes(wf.getnframes())
-        data = wf.readframes(CHUNK)
+    @staticmethod
+    def available_callbacks():
+        return [ VoiceService._callbacks[key] for key in VoiceService._callbacks]
 
-        # when the stream is done the final read data will be b'' (empty byte char)
-        while data != b'':
-            stream.write(data)    
-            data = wf.readframes(CHUNK)
+    @staticmethod
+    def get_updated_voice_configuration(config):
+        """ 
+            returns a dictionary of model_name -> callback
+        """
+        models, callbacks = VoiceService.get_current_callback_mapping(config)
 
-        # close file
-        stream.close()
-        audio.terminate()
-        
-    
+        new_config = {}
+        for model, callback in zip(models, callbacks):
+            new_config[model.lower()] = callback.__name__.lower() if callback is not None else None
+            
+        return new_config
+
+    @staticmethod
+    def get_current_callback_mapping(config):
+        """
+            Returns tuple of currently available models -> callback-function name
+
+            Parses the callbacks in the from the configuration and maps them 
+            to the functions registered as callbacks
+        """
+        model_to_callback = config.get('VOICE')
+
+        if not model_to_callback:
+            model_to_callback = {}
+
+        all_models = available_models()
+        corresponding_callbacks = []
+
+        # all possible callbacks
+        all_callbacks = VoiceService.available_callbacks()   
+
+        # if model is not listed in the configuration yet, add it        
+        for model in all_models:            
+            if not model.lower() in model_to_callback:
+                corresponding_callbacks.append(None)
+                logger.warn("model {} not found in config".format(model.lower()))
+                continue
+            
+            # this model has a configurated callback
+            # check that this callback is an actual function
+            callback_found = False
+            for callback in all_callbacks:
+                # just comparing callback names as lower case
+                if callback.__name__.lower() == model_to_callback[model.lower()].lower():
+                    corresponding_callbacks.append(callback)
+                    callback_found = True
+                    break
+            
+            # if no callback was found, add None
+            if not callback_found:
+                logger.warn("No callback function for callback '{}' found".format(
+                                            model_to_callback[model.lower()].lower()))
+                corresponding_callbacks.append(None)
+
+        return all_models, corresponding_callbacks
+
+    def start_service(self, event_queue: multiprocessing.Queue):
+        logger.info("Starting voice service")
+
+        self._event_queue = event_queue
+
+        models = available_models(path_type='absolute')
+
+        # mapping from models to callbacks 
+        _, callbacks = VoiceService.get_current_callback_mapping(config)
+
+        detector = HotwordDetector(models, sensitivity=[.6,.6,.6])
+        detector.start(callbacks)
+
+        raise RuntimeError("Should not get here.")
+
+        #start_time = time.time()
+        #while True:
+            #self._event_queue.put("Voice service has run {} s.".format(time.time() - start_time))
+            #time.sleep(1)
+
+
+
+
+
+
+
+
+
+def print_model_to_callback():
+    model_name, callback_func = VoiceService.get_current_callback_mapping(config)
+
+    print("""
+Currently the models are mapped to following callbacks:
+    """)
+    for name, func in zip(model_name, callback_func):        
+        print("%25s  ---->  %20s" % (name, func.__name__ if func is not None else ""))
+
+def print_available_callbacks():
+    callbacks = VoiceService.available_callbacks()
+
+    print("""
+Currently available callback functions:
+    """)
+    for callback in callbacks:
+        print(callback.__name__)
+
+    print("")
+
+
 
 
 def create_detector(model_path):
-
     return HotwordDetector(model_path, sensitivity=0.5)
 
+def run_detection():
+    models = available_models(path_type='absolute')
 
-def detection_callback():
-    print("Detected stuff")
+    _,callbacks = VoiceService.get_current_callback_mapping(config)
 
-def test_detector_model():
+    print("Detection starting")
 
-    detector = create_detector(args.model_path)
-        
-    detector.start(detected_callback=detection_callback)
+    detector = HotwordDetector(models, sensitivity=[.6,.6,.6])
+    detector.start(callbacks)
+
 
 if __name__ == "__main__":
 
@@ -132,4 +197,4 @@ if __name__ == "__main__":
     detector = create_detector(args.model_path)
 
     
-    detector.start(detected_callback=detection_callback)
+    detector.start(detected_callback= lambda: print("detection callback lambda."))

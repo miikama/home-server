@@ -1,6 +1,13 @@
 
 from flask import render_template, url_for, flash, redirect, jsonify, Blueprint
-from homeserver import logger, device_handler
+from homeserver import logger
+
+from homeserver.device_server.server import Server as DeviceServer
+
+
+device_handler = DeviceServer.get_running()
+
+
 
 api_routes = Blueprint("api", __name__)
 

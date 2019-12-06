@@ -5,9 +5,10 @@ import requests
 import asyncio
 import base64
 from homeserver import logger
-from homeserver.voice_control.voice_service import record_audio, play_back_audio
 
+from homeserver.voice_control.sound_utilities import record_audio, play_back_audio
 from homeserver.voice_control import VOICE_CONTROL_DIR
+
 
 
 MODEL_DIR = "models"
@@ -73,7 +74,9 @@ def get_model_folder() -> str:
 
 
     
-def get_available_models() -> List[str]:
+def available_models(path_type="relative") -> List[str]:
+
+    assert(path_type in ('relative', 'absolute'))
 
     models = []
 
@@ -88,11 +91,15 @@ def get_available_models() -> List[str]:
 
             models.append(possible_model_file)
 
+    # return absolute model paths
+    if path_type == "absolute":
+        models = [os.path.join(model_dir, model) for model in models]
+
     return models
 
 def print_available_models():
     model_dir = get_model_folder()
-    models = get_available_models()    
+    models = available_models()    
 
     print("Following models are available in directory {}:".format(model_dir))
     print("")

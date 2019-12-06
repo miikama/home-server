@@ -23,6 +23,7 @@ logger =setup_logging(config, logging.DEBUG)
 from homeserver.device_handler import DeviceHandler
 device_handler = DeviceHandler( os.path.join( app_path, 'device_configs') )
 
+
 def create_app(config):
 
 
@@ -30,7 +31,7 @@ def create_app(config):
 	app = Flask(__name__)
 
 	#add the config parameters to the app config
-	app.config.update(config)
+	app.config.update(config._values)
 
 	#load the webpage routes
 	from homeserver.server import api_routes
