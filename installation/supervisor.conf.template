@@ -1,7 +1,7 @@
 [program:homeserver]
 directory=/path/to/server
-command=/path/to/server/henv/bin/gunicorn -w 1 homeserver:app
-user=miika
+command=/path/to/server/henv/bin/hserv devices --start
+user=/my/user
 autostart=true
 autorestart=true
 stopasgroup=true
