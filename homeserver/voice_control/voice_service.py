@@ -73,7 +73,7 @@ class VoiceService:
 
         new_config = {}
         for model, callback in zip(models, callbacks):
-            new_config[model.lower()] = callback.__name__.lower() if callback is not None else None
+            new_config[model.lower()] = callback.__name__.lower() if callback is not None else ""
             
         return new_config
 
