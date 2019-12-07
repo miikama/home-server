@@ -1,34 +1,36 @@
 
 from homeserver.voice_control.voice_service import VoiceService 
+from homeserver.voice_control import logger
+from homeserver.event_service import EventMessage
 
 @VoiceService.register_callback
 def detection_callback():
-    print("Detected stuff")
+    logger.debug("Detected stuff")
 
     queue = VoiceService.get_current_queue()
     if queue:
-        queue.put("Detected stuff")
+        queue.put(EventMessage("detected_stuff", VoiceService.name))
 
 @VoiceService.register_callback
 def lights_on():
-    print("lights on")
+    logger.debug("lights_on")
 
     queue = VoiceService.get_current_queue()
     if queue:
-        queue.put("lights on")
+        queue.put(EventMessage("lights_on", VoiceService.name))        
 
 @VoiceService.register_callback
 def lights_off():
-    print("lights off")
+    logger.debug("lights off")
 
     queue = VoiceService.get_current_queue()
     if queue:
-        queue.put("lights off")
+        queue.put(EventMessage("lights_off", VoiceService.name))        
 
 @VoiceService.register_callback
 def dim_lights():
-    print("dim lights")
+    logger.debug("dim_lights")
 
     queue = VoiceService.get_current_queue()
     if queue:
-        queue.put("dim lights")
+        queue.put(EventMessage("dim_lights", VoiceService.name))

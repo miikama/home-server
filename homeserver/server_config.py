@@ -41,6 +41,9 @@ class Config:
     def __getitem__(self, key):
         return self._values[key]
 
+    def __contains__(self, key):
+        return key in self._values
+
     def get(self, value):
         return self._values.get(value)
 

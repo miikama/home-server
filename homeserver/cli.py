@@ -6,6 +6,10 @@ from homeserver.voice_control.voice_service import run_detection, print_model_to
 
 from homeserver.device_server.server import list_devices, run_server
 
+from homeserver.light_control.lights_service import LightsService
+
+
+
 
 class HomeCli:
 
@@ -13,7 +17,7 @@ class HomeCli:
         A common entrypoint for multiple different command line tools
     '''
 
-    cli_commands = ('voice', 'devices')
+    cli_commands = ('voice', 'devices', 'lights')
 
     usage = '''
 
@@ -21,7 +25,8 @@ hserv <command-name> [arguments]
 
 command-name can be:
     voice   [voice-args]            
-    devices [device-args]            
+    devices [device-args]  
+    lights [light-args]          
 '''
 
     def __init__(self):
@@ -105,6 +110,32 @@ command-name can be:
                 train_new_model(wav_files=args.file)
             else:
                 train_new_model()
+
+    def lights(self):
+
+        parser = argparse.ArgumentParser(
+            description="Interact with the lights. Before doing anything, one has to call the register")
+        parser.add_argument('command',
+                            nargs='*',
+                            help="Possible commands to the lights, has to be one of {}".format(LightsService.get_commands()))
+        parser.add_argument('--register',
+                            action='store_true',
+                            help="Register yourself as a client to the Hue bridge.")
+        parser.add_argument('--list',
+                            action='store_true',
+                            help="List the currently available lights.")        
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.register:
+            LightsService.register_hue_bridge()
+        if args.list:
+            LightsService.print_available_lights()
+
+        # and finally dispense the command forward        
+        if args.command:            
+            LightsService.command(args.command[0], *args.command[1:])
+
+        
 
 
 def main():

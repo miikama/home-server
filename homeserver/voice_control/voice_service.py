@@ -157,6 +157,8 @@ Currently the models are mapped to following callbacks:
     """)
     for name, func in zip(model_name, callback_func):        
         print("%25s  ---->  %20s" % (name, func.__name__ if func is not None else ""))
+    
+    print("")
 
 def print_available_callbacks():
     callbacks = VoiceService.available_callbacks()
