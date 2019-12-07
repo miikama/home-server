@@ -59,14 +59,14 @@ sed "s:/path/to/server:${app_root}:g" supervisor.conf.template > supervisor.conf
 sed -i "s:/my/user:${cur_user}:g" supervisor.conf
 
 # copy the template configuration
-#sudo cp supervisor.conf /etc/supervisor/conf.d/homeserver.conf
+sudo cp supervisor.conf /etc/supervisor/conf.d/homeserver.conf
 
 # initialize logfiles
-#sudo mkdir -p /var/log/homeserver
-#sudo touch /var/log/homeserver/error.log
-#sudo touch /var/log/homeserver/server.log
+sudo mkdir -p /var/log/homeserver
+sudo touch /var/log/homeserver/error.log
+sudo touch /var/log/homeserver/server.log
 
-#sudo supervisorctl reload
+sudo supervisorctl reload
 
 
 
