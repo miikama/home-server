@@ -30,5 +30,6 @@ cp -rv swig/Python3/snowboy-detect-swig.cc $snowboy_target_dir
 cp -rv resources/common.res $snowboy_target_dir/resources
 
 cp -rv examples/Python3/snowboydecoder.py $snowboy_target_dir
+cp -rv LICENSE $snowboy_target_dir
 
 echo "Succesfully installed snowboy in $snowboy_target_dir."
