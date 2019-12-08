@@ -160,7 +160,7 @@ What should the model be named?
             wav_files.append(audio_file)
             record_audio(VOICE_SAMPLE_LENGTH, audio_file)
 
-        logger.info("Succefully recorded 3 samples")
+        logger.info("Successfully recorded 3 samples")
 
     # parse the model name
     parsed_name = "my_model"

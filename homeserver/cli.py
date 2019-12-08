@@ -124,12 +124,17 @@ command-name can be:
         parser.add_argument('--list',
                             action='store_true',
                             help="List the currently available lights.")        
+        parser.add_argument('--schedules',
+                            action='store_true',
+                            help="List the currently existing schedules in the bridge.")        
         args = parser.parse_args(sys.argv[2:])
 
         if args.register:
             LightsService.register_hue_bridge()
         if args.list:
             LightsService.print_available_lights()
+        if args.schedules:
+            LightsService.print_available_schedules()
 
         # and finally dispense the command forward        
         if args.command:            

@@ -34,3 +34,19 @@ def dim_lights():
     queue = VoiceService.get_current_queue()
     if queue:
         queue.put(EventMessage("dim_lights", VoiceService.name))
+
+@VoiceService.register_callback
+def bright_lights():
+    logger.debug("bright_lights")
+
+    queue = VoiceService.get_current_queue()
+    if queue:
+        queue.put(EventMessage("bright_lights", VoiceService.name))
+
+@VoiceService.register_callback
+def start_schedule():
+    logger.debug("start_schedule")
+
+    queue = VoiceService.get_current_queue()
+    if queue:
+        queue.put(EventMessage("start_schedule", VoiceService.name))

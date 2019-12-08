@@ -53,7 +53,11 @@ class LightsService:
             if event.msg == "lights_off":
                 self.lights_off()
             if event.msg == "dim_lights":
-                self.set_light_level(LightLevel.LOW)
+                self.set_light_level(LightLevel.LOW)            
+            if event.msg == "bright_lights":
+                self.set_light_level(LightLevel.HIGH)
+            if event.msg == "start_schedule":
+                self.start_schedule()
 
 
         raise RuntimeError("Should not get here.")
@@ -98,7 +102,47 @@ class LightsService:
 
         for light in self.bridge.get_light_objects():
             self.bridge.set_light(light.light_id, 'bri', brightness)
+    
+    def start_schedule(self):
+        """
+            takes the schedule that is marked as the currently
+            active in configuration and starts it
+        """
+        if self.bridge is None:
+            return
 
+        schedule_id, schedule_name  = self.get_active_schedule()
+
+        logger.info("starting schedule: {}".format(schedule_name))
+
+        attributes = {
+            'status': 'enabled'
+        }
+
+        response = self.bridge.set_schedule_attributes(schedule_id, attributes)
+        
+        if 'error' in response[0]:
+            logger.info("Starting schedule failed: {}".format(response[0]))
+        elif 'success' in response[0]:
+            logger.info("Starting schedule succeeded.")
+        
+        
+    def get_active_schedule(self):                
+        for group_id, group in self.bridge.get_schedule().items():
+            # currently one schedule can be controlled 
+            schedule_name = group.get('name')
+            active_name = LightsService.get_active_schedule_name()
+            if schedule_name == active_name:
+                return group_id, active_name
+            
+        return -1, ""
+
+    @staticmethod
+    def get_active_schedule_name():
+        """
+            the schedule that is marked active in configuration
+        """
+        return config['LIGHTS'].get('controlled_schedule')
 
     @staticmethod
     def connect_to_hue_bridge(config):
@@ -139,16 +183,17 @@ class LightsService:
 
     @staticmethod
     def update_light_configuration(config):        
-        light_config = config['LIGHTS'] if 'LIGHTS' in config else {}
-        ip = light_config['hue_bridge_ip'] if 'hue_bridge_ip' in light_config else ""
 
-        default_hue_config = os.path.join(LIGHT_CONTROL_DIR, "hue.conf")
-        config_path = light_config['hue_config_file'] if 'hue_config_file' in light_config else default_hue_config
+        light_config = {
+            'hue_bridge_ip': '',
+			'hue_config_file': os.path.join(LIGHT_CONTROL_DIR, 'hue.conf'), 
+            'controlled_schedule': ''
+        }
 
-        return {
-			'hue_bridge_ip': ip,
-			'hue_config_file': config_path, 
-			}
+        if 'LIGHTS' in config:
+            light_config.update(config['LIGHTS'])
+
+        return light_config
 
     @staticmethod
     def get_hue_bridge_ip():
@@ -189,7 +234,7 @@ class LightsService:
 
     @staticmethod
     def get_commands():
-        return ('on','off','level')
+        return ('on','off','level', 'start_schedule')
 
     @staticmethod
     def command(name, *args):
@@ -199,6 +244,11 @@ class LightsService:
 
         if not LightsService.registered_succesfully():
             print("Register the hue bridge first with lights --register")
+            return
+
+        if name not in LightsService.get_commands():
+            logger.info("Light command {} not found".format(name))
+            return
 
         service = LightsService()
 
@@ -209,25 +259,43 @@ class LightsService:
             service.lights_on()
         elif name == 'off':
             service.lights_off()
+        elif name == 'start_schedule':
+            service.start_schedule()
         elif name == 'level':
             # level requires an extra argument which denotes the light level, one of (LOW, MID, HIGH)
             if len(args) > 0 and args[0] in [level.name for level in LightLevel]:
                 service.set_light_level(LightLevel[args[0]])
             else:
                 logger.info("When setting light level, argument has to be one of {}".format(LightLevel.to_string()))
-        else:
-            logger.info("Light command {} not found".format(name))
-            return
         
 
 
-    
+    @staticmethod
+    def print_available_schedules():
+
+        if not LightsService.registered_succesfully():
+            print("Register the hue bridge first with lights --register")
+            return
+
+        service = LightsService()
+
+        print("\nAvailable schedules:\n")
+        for group_id, group in service.bridge.get_schedule().items():
+            # currently one schedule can be controlled 
+            schedule_name = group.get('name')
+            active_name = LightsService.get_active_schedule_name()
+            active_string = "ACTIVE" if schedule_name == active_name else ""
+            print("%-30s with id: %2s %10s" % (schedule_name, group_id, active_string))
+        
+        print("")
+
 
     @staticmethod
     def print_available_lights():
 
         if not LightsService.registered_succesfully():
             print("Register the hue bridge first with lights --register")
+            return
 
         service = LightsService()
 
@@ -293,4 +361,4 @@ class LightsService:
     
     
 if __name__ == "__main__":
-    print_available_lights()
+    LightsService.print_available_lights()

@@ -5,6 +5,38 @@ import os
 import pyaudio
 from homeserver import logger
 
+from ctypes import c_char_p, c_int, CFUNCTYPE
+from contextlib import contextmanager
+
+
+
+
+
+@contextmanager
+def no_alsa_error():
+    """
+        When sound is loaded with pyaudio, it spits out error messages
+
+        see https://stackoverflow.com/questions/7088672/pyaudio-working-but-spits-out-error-messages-each-time
+    """
+
+    ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+
+    def py_error_handler(filename, line, function, err, fmt):
+        pass
+
+    c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
+
+    try:
+        asound = cdll.LoadLibrary('libasound.so')
+        asound.snd_lib_error_set_handler(c_error_handler)
+        yield
+        asound.snd_lib_error_set_handler(None)
+    except:
+        yield
+        pass
+
+
 
 
 def record_audio(record_len, filename):
@@ -23,7 +55,9 @@ def record_audio(record_len, filename):
         RECORD_SECONDS = record_len
         WAVE_OUTPUT_FILENAME = filename
 
-        p = pyaudio.PyAudio()
+        p = None
+        with no_alsa_error():
+            p = pyaudio.PyAudio()
 
         stream = p.open(format=FORMAT,
                         channels=CHANNELS,
@@ -73,7 +107,9 @@ def play_back_audio(audio_file):
     with wave.open(audio_file, 'rb') as wf:
         
         # init pyaudio
-        audio = pyaudio.PyAudio()
+        audio = None
+        with no_alsa_error():
+            audio = pyaudio.PyAudio()
         
         # create audio stream    
         stream = audio.open(format=audio.get_format_from_width(wf.getsampwidth()),
