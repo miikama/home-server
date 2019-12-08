@@ -131,7 +131,7 @@ class VoiceService:
         # mapping from models to callbacks 
         _, callbacks = VoiceService.get_current_callback_mapping(config)
 
-        detector = HotwordDetector(models, sensitivity=[.6,.6,.6])
+        detector = HotwordDetector(models)
         detector.start(callbacks)
 
         raise RuntimeError("Should not get here.")
@@ -184,7 +184,7 @@ def run_detection():
 
     print("Detection starting")
 
-    detector = HotwordDetector(models, sensitivity=[.6,.6,.6])
+    detector = HotwordDetector(models)
     detector.start(callbacks)
 
 
