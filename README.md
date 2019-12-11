@@ -1,8 +1,148 @@
-# home-server
+# Home-server
+
+Home-server is a simple server built on Python. You can use Home-server to:
+
+#### Detect
+
+keywords with an offline keyword-detection. This detection is based on models from [Snowboy](https://snowboy.kitt.ai/). Home-server also comes with a command-line interface (CLI) for training custom own hotwords. 
+
+#### Interact 
+with your home's Philip's Hue smart lights. The detected keywords can be linked to different light commands.
+
+#### Notes for installation and usage 
+
+- [Installation](##Installation)
+- [Getting Started](##Getting-started)
+- [Notes on setup](##Complete-setup)
 
 
+This work is licensed under the MIT license. Note that code under Snowboy follows a separate license.
 
-## complete setup
+## Installation
+
+Home-server is not yet available in [PyPI](https://pypi.org/), so easiest way to install is to clone this repository.
+
+```shell
+git clone https://github.com/miikama/home-server.git
+cd home-server
+```
+
+And create a Python virtual environment
+
+```
+python -m venv henv
+source henv/bin/activate
+python setup.py develop
+```
+
+The snowboy modules will have to be installed manually. They can be installed with
+
+```
+cd installation
+./install_snowboy.sh
+```
+
+The installation requires sudo if you do not have swig installed. Swig creates Python wrappers for the keyword detector written in C++.
+
+## Getting started
+
+After installing inside a Python virtual environment (and with the environment active) the CLI is available under the alias hserv.
+
+### CLI
+
+```shell
+(henv) anon:home-server$ hserv -h
+
+usage: 
+
+hserv <command-name> [arguments]
+
+command-name can be:
+    voice   [voice-args]            
+    devices [device-args]  
+    lights [light-args]          
+
+A common entrypoint for multiple different command line tools
+
+positional arguments:
+  command     Command is any of the following: ('voice', 'devices', 'lights')
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+```
+
+### Voice control
+
+The voice-control related commands are under hserv voice. 
+
+```shell
+hserv voice -h
+usage: hserv [-h] [--models] [--list] [--callbacks] [--detect] [--train]
+             [--file FILE FILE FILE]
+
+Interact with the voice stuff.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --models              List the currently available trained models
+  --list                List the current mapping from model to callback
+  --callbacks           List the currently available callbacks
+  --detect              Start voice detection
+  --train               Train a new model.
+  --file FILE FILE FILE
+                        Three .wav files to use for model trainig.
+```
+
+- --train can be used to train a new model with the Snowboy api
+- --callbacks show the available actions for voice commands. 
+- --list shows what callbacks the current trained keyword-models are mapped to (what happes for each keyword detected)
+- --detect runs the voice detection and can be used to test the trained models.
+
+The decision what the models are mapped to can be found in home-server/homeserver/server.ini
+
+### Philips Hue lights
+
+The command line tool can be used to control you home smart lights as well.
+
+```shell
+usage: hserv [-h] [--register] [--list] [--schedules] [command [command ...]]
+
+Interact with the lights. Before doing anything, one has to call the register
+
+positional arguments:
+  command      Possible commands to the lights, has to be one of ('on', 'off',
+               'level', 'start_schedule')
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --register   Register yourself as a client to the Hue bridge.
+  --list       List the currently available lights.
+  --schedules  List the currently existing schedules in the bridge.
+```
+
+The first command for the lights has to be --register. This requires pushing a physical button in the philips Hue bridge for registering a new user.
+
+### Start the server
+
+After connecting lights and setting up the voice commands you can start the server with devices --start and leave it running.
+
+```shell
+usage: hserv [-h] [--list] [--start]
+
+The CLI for the server that listens to all the different devices.
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --list      List the currently available devices
+  --start     Start the server.
+```
+
+The installation folder has a script 'install_on_pi.sh' which install supervisor and sets up a supervisor job for automatically starting the homeserver on computer startup. This continuous mode logs can be found under /var/log/homeserver.
+
+## Additional notes :)
+
+### complete setup
 
 Dependencies for pyaudio
 
