@@ -20,6 +20,15 @@ class LightLevel(enum.Enum):
     def to_string():
         return "levels: " + (", ".join([ level.name for level in LightLevel]))
 
+class LightColor(enum.Enum):
+    RED = 1
+    BLUE = 2
+    WHITE = 3
+
+    @staticmethod
+    def to_string():
+        return "colors: " + (", ".join([ level.name for level in LightColor]))
+
 
 class LightsService:
 
@@ -58,6 +67,7 @@ class LightsService:
                 self.set_light_level(LightLevel.HIGH)
             if event.msg == "start_schedule":
                 self.start_schedule()
+                self.set_light_color(LightColor.RED)
 
 
         raise RuntimeError("Should not get here.")
@@ -90,11 +100,11 @@ class LightsService:
         brightness = 0
 
         if level == LightLevel.LOW:
-            brightness = 10
+            brightness = 30
         elif level == LightLevel.MID:
             brightness = 127
         elif level == LightLevel.HIGH:
-            brightness = 254
+            brightness = 200
         else:
             return
         
@@ -102,6 +112,32 @@ class LightsService:
 
         for light in self.bridge.get_light_objects():
             self.bridge.set_light(light.light_id, 'bri', brightness)
+
+    def set_light_color(self, color: LightColor):	
+        """
+            Colors are defined with values based on 
+            https://developers.meethue.com/develop/get-started-2/core-concepts/
+        """
+
+        if self.bridge is None:
+            return
+
+        xy = [0,0]
+        if color == LightColor.WHITE:
+            xy = [0.4, 0.4]
+        elif color == LightColor.BLUE:
+            xy = [0.2, 0.3]
+        elif color == LightColor.RED:
+            xy = [0.6, 0.4]
+        else:
+            return
+        
+        logger.info("Setting light color to {}".format(xy))	
+
+        for light in self.bridge.get_light_objects():
+           self.bridge.set_light(light.light_id, {
+               'xy': xy, 
+           })
     
     def start_schedule(self):
         """
@@ -234,7 +270,7 @@ class LightsService:
 
     @staticmethod
     def get_commands():
-        return ('on','off','level', 'start_schedule')
+        return ('on','off','level', 'start_schedule', 'color')
 
     @staticmethod
     def command(name, *args):
@@ -267,6 +303,12 @@ class LightsService:
                 service.set_light_level(LightLevel[args[0]])
             else:
                 logger.info("When setting light level, argument has to be one of {}".format(LightLevel.to_string()))
+        elif name == 'color':            
+            # color requires an extra argument which denotes the light color, type LightColor            
+            if len(args) > 0 and args[0] in [color.name for color in LightColor]:
+                service.set_light_color(LightColor[args[0]])
+            else:
+                logger.info("When setting light color, argument has to be one of {}".format(LightColor.to_string()))
         
 
 
